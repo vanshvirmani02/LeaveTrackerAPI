@@ -1,0 +1,29 @@
+export const COMPANY_PREFIX = "RGOT";
+
+export const ROLES = {
+  MANAGER: "MANAGER",
+  ADMIN: "ADMIN",
+  EMPLOYEE: "EMPLOYEE",
+};
+
+export const USER_STATUS = {
+  ACTIVE: "ACTIVE",
+  INACTIVE: "INACTIVE",
+};
+
+export const DEVICE_TYPES = {
+  WEB: "web",
+  MOBILE: "mobile",
+};
+
+export const ACCRUAL_TYPES = {
+  NONE: "NONE",
+  YEARLY: "YEARLY",
+  MONTHLY: "MONTHLY",
+  QUARTERLY: "QUARTERLY",
+};
+
+export const LEAVE_TYPE_STATUS = {
+  ACTIVE: "ACTIVE",
+  INACTIVE: "INACTIVE",
+};
