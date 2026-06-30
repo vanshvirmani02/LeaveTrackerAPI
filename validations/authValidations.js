@@ -50,3 +50,28 @@ export const signupUserValidation = [
       return true;
     }),
 ];
+
+export const loginUserValidation = [
+  body("email")
+    .trim()
+    .notEmpty()
+    .withMessage("Email is required.")
+    .isEmail()
+    .withMessage("A valid email is required.")
+    .normalizeEmail(),
+
+  body("password")
+    .notEmpty()
+    .withMessage("Password is required.")
+    .isString()
+    .withMessage("Password must be a string."),
+
+  header("x-device-id")
+    .custom((deviceId, { req }) => {
+      const appId = req.headers["x-app-id"];
+      if (appId && !deviceId) {
+        throw new Error("deviceId is required for mobile.");
+      }
+      return true;
+    }),
+];

@@ -5,6 +5,10 @@ class UserRepository {
     return User.findOne({ email: email.toLowerCase().trim() });
   }
 
+  async findById(id) {
+    return User.findById(id);
+  }
+
   async createUser(userData) {
     return User.create(userData);
   }

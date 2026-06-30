@@ -61,6 +61,10 @@ export const encryptPasswordForStorage = async (password) => {
     return await bcrypt.hash(password, saltRounds);
 };
 
+export const verifyPassword = async (plainPassword, hashedPassword) => {
+    return bcrypt.compare(plainPassword, hashedPassword);
+};
+
 const getDefaultSessionExpiry = () => {
   const sessionExpDays = parseInt(process.env.SESSION_EXP, 10);
   const days = Number.isNaN(sessionExpDays) ? 7 : sessionExpDays;
@@ -68,7 +72,7 @@ const getDefaultSessionExpiry = () => {
 };
 
 export const generateSessionId = async ({
-  employeeId,
+  userId,
   deviceType,
   deviceId,
   ipAddress,
@@ -77,7 +81,7 @@ export const generateSessionId = async ({
   const now = new Date();
 
   const query = {
-    employeeId,
+    employeeId: userId,
     deviceType,
     isRevoked: false,
     expiredAt: { $gt: now },
@@ -94,7 +98,7 @@ export const generateSessionId = async ({
   }
 
   const sessionData = {
-    employeeId,
+    employeeId: userId,
     deviceType,
     ipAddress,
     isRevoked: false,
@@ -118,6 +122,16 @@ export const generateToken = (userData,sessionId) => {
       expiresIn: "10m",
     });
     return token;
+};
+
+export const verifyToken = (token) => {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const decryptedPayload = JSON.parse(decrypt(decoded.data));
+    return decryptedPayload;
+  } catch {
+    throw new Error("Invalid or expired access token");
+  }
 };
 
 export const generateRefreshToken = (userData) => {

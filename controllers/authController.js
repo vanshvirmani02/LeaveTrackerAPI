@@ -1,9 +1,11 @@
 import asyncHandler from "../middleware/asyncHandler.js";
 import userRepository from "../repository/userRepository.js";
 import { isAllowedOrigin } from "../utils/commonFunctions.js";
+import { USER_STATUS } from "../config/constants.js";
 import {
   encryptPasswordForStorage,
   decrypt,
+  verifyPassword,
   generateSessionId,
   generateToken,
   generateRefreshToken,
@@ -17,14 +19,13 @@ const getClientIpAddress = (req) =>
   "unknown";
 
 const generateAndReturnTokens = async ({
-  userId,
   deviceType,
   deviceId,
   ipAddress,
   userData,
 }) => {
   const sessionId = await generateSessionId({
-    employeeId: userId,
+    userId: userData.id,
     deviceType,
     deviceId,
     ipAddress,
@@ -84,7 +85,6 @@ export const signupUser = asyncHandler(async (req, res) => {
   };
 
   const { accessToken, refreshToken } = await generateAndReturnTokens({
-    userId: user._id,
     deviceType,
     deviceId,
     ipAddress,
@@ -96,5 +96,78 @@ export const signupUser = asyncHandler(async (req, res) => {
     user: userData,
     accessToken,
     refreshToken,
+  });
+});
+
+export const loginUser = asyncHandler(async (req, res) => {
+  const {
+    email,
+    password,
+  } = req.body;
+  const { deviceType, deviceId } = getClientContext(req);
+
+  if (!isAllowedOrigin(req.headers.origin)) {
+    return res.status(403).json({
+      success: false,
+      message: "Unauthorized: Request must originate from the official website.",
+    });
+  }
+
+  const existingUser = await userRepository.findByEmail(email);
+  if (!existingUser) {
+    return res.status(400).json({
+      success: false,
+      message: "User not found.",
+    });
+  }
+
+  if (existingUser.status === USER_STATUS.INACTIVE) {
+    return res.status(400).json({
+      success: false,
+      message: "User is inactive.",
+    });
+  }
+
+  const isPasswordValid = await verifyPassword(
+    decrypt(password),
+    existingUser.password,
+  );
+  if (!isPasswordValid) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid email or password.",
+    });
+  }
+
+  const ipAddress = getClientIpAddress(req);
+
+  const userData = {
+    id: existingUser._id.toString(),
+    employeeId: existingUser.employeeId,
+    name: existingUser.name,
+    email: existingUser.email,
+    joiningDate: existingUser.joiningDate.toISOString(),
+  };
+
+  const { accessToken, refreshToken } = await generateAndReturnTokens({
+    deviceType,
+    deviceId,
+    ipAddress,
+    userData,
+  });
+
+  res.status(200).json({
+    success: true,
+    user: userData,
+    accessToken,
+    refreshToken,
+  });
+});
+
+export const getReqUser = asyncHandler(async (req, res) => {
+  const user = req.user;
+  res.status(200).json({
+    success: true,
+    user: user,
   });
 });
