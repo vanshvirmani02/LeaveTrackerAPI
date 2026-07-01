@@ -46,6 +46,7 @@ export const signupUser = asyncHandler(async (req, res) => {
     contactNo,
     joiningDate,
     managerId,
+    role,
   } = req.body;
   const { deviceType, deviceId } = getClientContext(req);
 
@@ -56,7 +57,14 @@ export const signupUser = asyncHandler(async (req, res) => {
     });
   }
 
-  const existingUser = await userRepository.findByEmail(email);
+  if (!role || !Object.values(ROLES).includes(role)) {
+    return res.status(400).json({
+      success: false,
+      message: "Role is required.",
+    });
+  }
+
+  const existingUser = await userRepository.findByEmailAndRole(email, role);
   if (existingUser) {
     return res.status(400).json({
       success: false,
@@ -74,6 +82,7 @@ export const signupUser = asyncHandler(async (req, res) => {
     joiningDate,
     designation,
     managerId : null,
+    role,
   });
 
   const userData = {
@@ -82,6 +91,7 @@ export const signupUser = asyncHandler(async (req, res) => {
     name: user.name,
     email: user.email,
     joiningDate: user.joiningDate.toISOString(),
+    role: user.role,
   };
 
   const { accessToken, refreshToken } = await generateAndReturnTokens({
@@ -170,13 +180,5 @@ export const loginUser = asyncHandler(async (req, res) => {
     user: userData,
     accessToken,
     refreshToken,
-  });
-});
-
-export const getReqUser = asyncHandler(async (req, res) => {
-  const user = req.user;
-  res.status(200).json({
-    success: true,
-    user: user,
   });
 });

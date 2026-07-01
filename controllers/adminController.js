@@ -1,0 +1,175 @@
+import asyncHandler from "../middleware/asyncHandler.js";
+import userRepository from "../repository/userRepository.js";
+import { ROLES, USER_STATUS } from "../config/constants.js";
+import { encryptPasswordForStorage, decrypt } from "../utils/authUtils.js";
+
+const formatEmployee = (user) => {
+  const employee = user.toObject ? user.toObject() : { ...user };
+  delete employee.password;
+  const { _id, ...rest } = employee;
+  return {
+    ...rest,
+    id: _id?.toString() ?? employee.id?.toString(),
+  };
+};
+
+export const addEmployee = asyncHandler(async (req, res) => {
+  const {
+    name,
+    email,
+    password,
+    contactNo,
+    joiningDate,
+    designation,
+    managerId,
+  } = req.body;
+  const isAdmin = req.user.role === ROLES.ADMIN;
+  if (!isAdmin) {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. Admin privileges required.",
+    });
+  }
+
+  const existingUser = await userRepository.findByEmail(email);
+  if (existingUser) {
+    return res.status(400).json({
+      success: false,
+      message: "Employee with this email already exists.",
+    });
+  }
+
+  if (managerId) {
+    const manager = await userRepository.findById(managerId);
+    if (!manager) {
+      return res.status(400).json({
+        success: false,
+        message: "Manager not found.",
+      });
+    }
+  }
+
+  const employee = await userRepository.createUser({
+    name,
+    email,
+    password: await encryptPasswordForStorage(decrypt(password)),
+    contactNo,
+    joiningDate,
+    designation,
+    managerId: managerId || null,
+    role: ROLES.EMPLOYEE,
+    status: USER_STATUS.ACTIVE,
+  });
+
+  res.status(201).json({
+    success: true,
+    message: "Employee added successfully.",
+    employee: formatEmployee(employee),
+  });
+});
+
+export const getAllEmployees = asyncHandler(async (req, res) => {
+  const isAdmin = req.user.role === ROLES.ADMIN;
+  if (!isAdmin) {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. Admin privileges required.",
+    });
+  }
+
+  const employees = await userRepository.findAllByRole(ROLES.EMPLOYEE);
+
+  res.status(200).json({
+    success: true,
+    count: employees.length,
+    employees: employees.map(formatEmployee),
+  });
+});
+
+export const updateEmployeeById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { name, email, password, contactNo, joiningDate, designation, managerId } =
+    req.body;
+
+  const isAdmin = req.user.role === ROLES.ADMIN;
+  if (!isAdmin) {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. Admin privileges required.",
+    });
+  }
+
+  const existingEmployee = await userRepository.findByIdAndRole(id, ROLES.EMPLOYEE);
+  if (!existingEmployee) {
+    return res.status(404).json({
+      success: false,
+      message: "Employee not found.",
+    });
+  }
+
+  if (email && email !== existingEmployee.email) {
+    const emailTaken = await userRepository.findByEmail(email);
+    if (emailTaken) {
+      return res.status(400).json({
+        success: false,
+        message: "Employee with this email already exists.",
+      });
+    }
+  }
+
+  if (managerId) {
+    const manager = await userRepository.findById(managerId);
+    if (!manager) {
+      return res.status(400).json({
+        success: false,
+        message: "Manager not found.",
+      });
+    }
+  }
+
+  const updateData = {};
+  if (name !== undefined) updateData.name = name;
+  if (email !== undefined) updateData.email = email;
+  if (contactNo !== undefined) updateData.contactNo = contactNo;
+  if (joiningDate !== undefined) updateData.joiningDate = joiningDate;
+  if (designation !== undefined) updateData.designation = designation;
+  if (managerId !== undefined) updateData.managerId = managerId || null;
+  if (password) {
+    updateData.password = await encryptPasswordForStorage(decrypt(password));
+  }
+
+  const updatedEmployee = await userRepository.updateById(id, updateData);
+
+  res.status(200).json({
+    success: true,
+    message: "Employee updated successfully.",
+    employee: formatEmployee(updatedEmployee),
+  });
+});
+
+export const deleteEmployeeById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const isAdmin = req.user.role === ROLES.ADMIN;
+  if (!isAdmin) {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. Admin privileges required.",
+    });
+  }
+
+  const existingEmployee = await userRepository.findByIdAndRole(id, ROLES.EMPLOYEE);
+  if (!existingEmployee) {
+    return res.status(404).json({
+      success: false,
+      message: "Employee not found.",
+    });
+  }
+
+  await userRepository.deleteById(id);
+
+  res.status(200).json({
+    success: true,
+    message: "Employee deleted successfully.",
+  });
+});

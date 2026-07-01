@@ -1,6 +1,7 @@
 import { validationResult } from "express-validator";
 
 export * from "./authValidations.js";
+export * from "./adminValidations.js";
 
 export const validateReq = (req, res, next) => {
   const errors = validationResult(req);
