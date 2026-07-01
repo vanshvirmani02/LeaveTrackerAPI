@@ -1,4 +1,4 @@
-import { body, param } from "express-validator";
+import { body, param, query } from "express-validator";
 import mongoose from "mongoose";
 
 const mongoIdValidator = (value) => {
@@ -101,4 +101,18 @@ export const updateEmployeeValidation = [
 
 export const employeeIdParamValidation = [
   param("id").custom(mongoIdValidator),
+];
+
+export const getEmployeesQueryValidation = [
+  query("managerId")
+    .optional()
+    .custom(mongoIdValidator),
+
+  query("managerName")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage("Manager name cannot be empty.")
+    .isLength({ max: 100 })
+    .withMessage("Manager name must not exceed 100 characters."),
 ];

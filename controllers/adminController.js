@@ -6,10 +6,25 @@ import { encryptPasswordForStorage, decrypt } from "../utils/authUtils.js";
 const formatEmployee = (user) => {
   const employee = user.toObject ? user.toObject() : { ...user };
   delete employee.password;
-  const { _id, ...rest } = employee;
+  const { _id, managerId, ...rest } = employee;
+
+  let manager = null;
+  if (managerId && typeof managerId === "object") {
+    manager = {
+      id: managerId._id?.toString(),
+      name: managerId.name,
+    };
+  } else if (managerId) {
+    manager = {
+      id: managerId.toString(),
+      name: null,
+    };
+  }
+
   return {
     ...rest,
     id: _id?.toString() ?? employee.id?.toString(),
+    manager,
   };
 };
 
@@ -77,7 +92,21 @@ export const getAllEmployees = asyncHandler(async (req, res) => {
     });
   }
 
-  const employees = await userRepository.findAllByRole(ROLES.EMPLOYEE);
+  const { managerId, managerName } = req.query;
+
+  const employees = await userRepository.findAllByRole(ROLES.EMPLOYEE, {
+    managerId,
+    managerName,
+  });
+
+  if (employees.length === 0) {
+    return res.status(200).json({
+      success: true,
+      count: 0,
+      message: "No employees found.",
+      employees: [],
+    });
+  }
 
   res.status(200).json({
     success: true,

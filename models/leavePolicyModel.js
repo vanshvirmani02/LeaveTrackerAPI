@@ -7,10 +7,18 @@ const leavePolicySchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    leaveTypeId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "LeaveType",
+    leaveTypeIds: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "LeaveType",
+        },
+      ],
       required: true,
+      validate: {
+        validator: (value) => Array.isArray(value) && value.length > 0,
+        message: "At least one leave type is required.",
+      },
     },
     accrualRules: {
       type: String,

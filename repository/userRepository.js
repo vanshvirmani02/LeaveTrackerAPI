@@ -17,8 +17,44 @@ class UserRepository {
     return User.create(userData);
   }
 
-  async findAllByRole(role) {
-    return User.find({ role }).select("-password").sort({ createdAt: -1 });
+  async findAllByRole(role, { managerId, managerName } = {}) {
+    const filter = { role };
+    let managerIdsFilter = null;
+
+    if (managerId) {
+      managerIdsFilter = [managerId];
+    }
+
+    if (managerName) {
+      const managers = await User.find({
+        name: { $regex: managerName.trim(), $options: "i" },
+      }).select("_id");
+      const nameMatchedIds = managers.map((manager) => manager._id.toString());
+
+      if (managerIdsFilter) {
+        managerIdsFilter = managerIdsFilter.filter((id) =>
+          nameMatchedIds.includes(id.toString()),
+        );
+      } else {
+        managerIdsFilter = nameMatchedIds;
+      }
+    }
+
+    if (managerIdsFilter !== null) {
+      if (managerIdsFilter.length === 0) {
+        return [];
+      }
+
+      filter.managerId =
+        managerIdsFilter.length === 1
+          ? managerIdsFilter[0]
+          : { $in: managerIdsFilter };
+    }
+
+    return User.find(filter)
+      .select("-password")
+      .populate("managerId", "name")
+      .sort({ createdAt: -1 });
   }
 
   async findByIdAndRole(id, role) {
