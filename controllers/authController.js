@@ -1,7 +1,7 @@
 import asyncHandler from "../middleware/asyncHandler.js";
 import userRepository from "../repository/userRepository.js";
 import { isAllowedOrigin } from "../utils/commonFunctions.js";
-import { USER_STATUS } from "../config/constants.js";
+import { USER_STATUS, ROLES } from "../config/constants.js";
 import {
   encryptPasswordForStorage,
   decrypt,
@@ -103,6 +103,7 @@ export const loginUser = asyncHandler(async (req, res) => {
   const {
     email,
     password,
+    role
   } = req.body;
   const { deviceType, deviceId } = getClientContext(req);
 
@@ -113,7 +114,14 @@ export const loginUser = asyncHandler(async (req, res) => {
     });
   }
 
-  const existingUser = await userRepository.findByEmail(email);
+  if (!role || !Object.values(ROLES).includes(role)) {
+    return res.status(400).json({
+      success: false,
+      message: "Role is required.",
+    });
+  }
+
+  const existingUser = await userRepository.findByEmailAndRole(email, role);
   if (!existingUser) {
     return res.status(400).json({
       success: false,

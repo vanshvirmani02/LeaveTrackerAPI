@@ -1,4 +1,5 @@
 import { body, header } from "express-validator";
+import { ROLES } from "../config/constants.js";
 
 export const signupUserValidation = [
   body("name")
@@ -65,6 +66,13 @@ export const loginUserValidation = [
     .withMessage("Password is required.")
     .isString()
     .withMessage("Password must be a string."),
+
+  body("role")
+    .trim()
+    .notEmpty()
+    .withMessage("Role is required.")
+    .isIn(Object.values(ROLES))
+    .withMessage("Role is required."),
 
   header("x-device-id")
     .custom((deviceId, { req }) => {
