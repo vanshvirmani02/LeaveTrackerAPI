@@ -1,8 +1,9 @@
 import { body, param, query } from "express-validator";
 import mongoose from "mongoose";
-import { LEAVE_REQUEST_STATUS } from "../config/constants.js";
+import { LEAVE_REQUEST_STATUS, LEAVE_REQUEST_ACTION } from "../config/constants.js";
 
 const leaveRequestStatusValues = Object.values(LEAVE_REQUEST_STATUS);
+const leaveRequestActionValues = Object.values(LEAVE_REQUEST_ACTION);
 
 const mongoIdValidator = (value) => {
   if (!mongoose.Types.ObjectId.isValid(value)) {
@@ -139,4 +140,40 @@ export const updateLeaveRequestValidation = [
 
 export const leaveRequestIdParamValidation = [
   param("id").custom(mongoIdValidator),
+];
+
+export const getLeaveRequestByIdQueryValidation = [
+  param("id").custom(mongoIdValidator),
+
+  query("status")
+    .optional()
+    .isIn(leaveRequestStatusValues)
+    .withMessage(
+      `Status must be one of: ${leaveRequestStatusValues.join(", ")}.`,
+    ),
+
+  query("leaveType")
+    .optional()
+    .custom(mongoIdValidator)
+    .withMessage("Leave type must be a valid ID."),
+];
+
+export const actionLeaveRequestValidation = [
+  param("id").custom(mongoIdValidator),
+
+  body("action")
+    .notEmpty()
+    .withMessage("Action is required.")
+    .isIn(leaveRequestActionValues)
+    .withMessage(`Action must be one of: ${leaveRequestActionValues.join(", ")}.`),
+
+  body("employeeId")
+    .trim()
+    .notEmpty()
+    .withMessage("Employee ID is required."),
+
+  body("leaveType")
+    .notEmpty()
+    .withMessage("Leave type is required.")
+    .custom(mongoIdValidator),
 ];

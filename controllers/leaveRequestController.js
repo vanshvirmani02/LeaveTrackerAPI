@@ -4,7 +4,7 @@ import leaveTypeRepository from "../repository/leaveTypeRepository.js";
 import userRepository from "../repository/userRepository.js";
 import { LEAVE_TYPE_STATUS, LEAVE_REQUEST_STATUS } from "../config/constants.js";
 
-const formatLeaveRequest = (leaveRequest, { employeeName, managerName } = {}) => {
+export const formatLeaveRequest = (leaveRequest, { employeeName, managerName } = {}) => {
   const doc = leaveRequest.toObject ? leaveRequest.toObject() : { ...leaveRequest };
   const { _id, leaveType, ...rest } = doc;
 
@@ -190,6 +190,7 @@ export const getMyLeaveRequests = asyncHandler(async (req, res) => {
 
 export const getLeaveRequestById = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const { status, leaveType } = req.query;
   const employeeId = req.user.employeeId;
 
   if (!employeeId) {
@@ -202,6 +203,7 @@ export const getLeaveRequestById = asyncHandler(async (req, res) => {
   const leaveRequest = await leaveRequestRepository.findByIdAndEmployeeId(
     id,
     employeeId,
+    { status, leaveType },
   );
 
   if (!leaveRequest) {
@@ -211,9 +213,15 @@ export const getLeaveRequestById = asyncHandler(async (req, res) => {
     });
   }
 
+  const employee = await userRepository.findByEmployeeId(employeeId);
+  const employeeDetails = {
+    employeeName: employee?.name ?? null,
+    managerName: employee?.managerId?.name ?? null,
+  };
+
   res.status(200).json({
     success: true,
-    leaveRequest: formatLeaveRequest(leaveRequest),
+    leaveRequest: formatLeaveRequest(leaveRequest, employeeDetails),
   });
 });
 

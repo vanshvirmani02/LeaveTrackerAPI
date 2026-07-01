@@ -159,6 +159,8 @@ export const loginUser = asyncHandler(async (req, res) => {
 
   const ipAddress = getClientIpAddress(req);
 
+  const isManager = await userRepository.isManagerOfAnyUser(existingUser._id);
+
   const userData = {
     id: existingUser._id.toString(),
     employeeId: existingUser.employeeId,
@@ -166,6 +168,7 @@ export const loginUser = asyncHandler(async (req, res) => {
     email: existingUser.email,
     joiningDate: existingUser.joiningDate.toISOString(),
     role: existingUser.role,
+    isManager,
   };
 
   const { accessToken, refreshToken } = await generateAndReturnTokens({

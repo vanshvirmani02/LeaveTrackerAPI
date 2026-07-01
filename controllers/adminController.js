@@ -1,6 +1,15 @@
 import asyncHandler from "../middleware/asyncHandler.js";
 import userRepository from "../repository/userRepository.js";
-import { ROLES, USER_STATUS } from "../config/constants.js";
+import leaveRequestRepository from "../repository/leaveRequestRepository.js";
+import leaveTypeRepository from "../repository/leaveTypeRepository.js";
+import leaveBalanceRepository from "../repository/leaveBalanceRepository.js";
+import { formatLeaveRequest } from "./leaveRequestController.js";
+import {
+  ROLES,
+  USER_STATUS,
+  LEAVE_REQUEST_STATUS,
+  LEAVE_REQUEST_ACTION,
+} from "../config/constants.js";
 import { encryptPasswordForStorage, decrypt } from "../utils/authUtils.js";
 
 const formatEmployee = (user) => {
@@ -26,6 +35,29 @@ const formatEmployee = (user) => {
     id: _id?.toString() ?? employee.id?.toString(),
     manager,
   };
+};
+
+const formatLeaveBalance = (leaveBalance) => {
+  const doc = leaveBalance.toObject ? leaveBalance.toObject() : { ...leaveBalance };
+  const { _id, leaveTypeId, ...rest } = doc;
+
+  return {
+    ...rest,
+    id: _id?.toString(),
+    leaveTypeId: leaveTypeId?.toString(),
+  };
+};
+
+const getLeaveTypeId = (leaveType) => {
+  if (!leaveType) {
+    return null;
+  }
+
+  if (typeof leaveType === "object") {
+    return leaveType._id?.toString() ?? leaveType.id?.toString();
+  }
+
+  return leaveType.toString();
 };
 
 export const addEmployee = asyncHandler(async (req, res) => {
@@ -227,3 +259,77 @@ export const setEmployeeManager = asyncHandler(async (req, res) => {
     })),
   });
 });
+
+export const actionLeaveRequest = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { action, employeeId, leaveType } = req.body;
+
+  const leaveRequest = await leaveRequestRepository.findById(id);
+  if (!leaveRequest) {
+    return res.status(404).json({
+      success: false,
+      message: "Leave request not found.",
+    });
+  }
+
+  if (leaveRequest.status !== LEAVE_REQUEST_STATUS.PENDING) {
+    return res.status(400).json({
+      success: false,
+      message: "Only pending leave requests can be approved or rejected.",
+    });
+  }
+
+  if (leaveRequest.employeeId !== employeeId) {
+    return res.status(400).json({
+      success: false,
+      message: "Employee ID does not match the leave request.",
+    });
+  }
+
+  if (getLeaveTypeId(leaveRequest.leaveType) !== leaveType) {
+    return res.status(400).json({
+      success: false,
+      message: "Leave type does not match the leave request.",
+    });
+  }
+
+  if (action === LEAVE_REQUEST_ACTION.REJECT) {
+    const updatedLeaveRequest = await leaveRequestRepository.updateStatusById(
+      id,
+      LEAVE_REQUEST_STATUS.REJECTED,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Leave request rejected successfully.",
+      leaveRequest: formatLeaveRequest(updatedLeaveRequest),
+    });
+  }
+
+  const leaveTypeDoc = await leaveTypeRepository.findById(leaveType);
+  if (!leaveTypeDoc) {
+    return res.status(404).json({
+      success: false,
+      message: "Leave type not found.",
+    });
+  }
+
+  const updatedLeaveRequest = await leaveRequestRepository.updateStatusById(
+    id,
+    LEAVE_REQUEST_STATUS.APPROVED,
+  );
+
+  const leaveBalance = await leaveBalanceRepository.upsertOnApprove({
+    employeeId,
+    leaveTypeId: leaveType,
+    allocatedLeaves: leaveTypeDoc.annualQuota,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Leave request approved successfully.",
+    leaveRequest: formatLeaveRequest(updatedLeaveRequest),
+    leaveBalance: formatLeaveBalance(leaveBalance),
+  });
+});
+

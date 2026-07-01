@@ -5,6 +5,7 @@ import {
   updateEmployeeById,
   deleteEmployeeById,
   setEmployeeManager,
+  actionLeaveRequest,
 } from "../controllers/adminController.js";
 import { getAllManagers, getManagersList } from "../controllers/managersController.js";
 import {
@@ -48,6 +49,7 @@ import {
   addAdminSettingsValidation,
   updateAdminSettingsValidation,
   adminSettingsIdParamValidation,
+  actionLeaveRequestValidation,
   validateReq,
 } from "../validations/index.js";
 import { authHandler } from "../middleware/authHandler.js";
@@ -150,4 +152,12 @@ router.delete(
 );
 
 router.get("/set-employee-manager", setEmployeeManager);
+
+router.put(
+  "/leave-requests/:id/action",
+  actionLeaveRequestValidation,
+  validateReq,
+  actionLeaveRequest,
+);
+
 export default router;

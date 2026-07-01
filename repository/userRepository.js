@@ -74,6 +74,11 @@ class UserRepository {
     return User.findOne({ _id: id, role });
   }
 
+  async isManagerOfAnyUser(userId) {
+    const hasManagedUsers = await User.exists({ managerId: userId });
+    return Boolean(hasManagedUsers);
+  }
+
   async updateById(id, updateData) {
     return User.findByIdAndUpdate(id, updateData, {
       new: true,

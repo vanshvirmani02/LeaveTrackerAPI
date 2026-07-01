@@ -42,8 +42,26 @@ class LeaveRequestRepository {
       .sort({ createdAt: -1 });
   }
 
-  async findByIdAndEmployeeId(id, employeeId) {
-    return LeaveRequest.findOne({ _id: id, employeeId }).populate("leaveType");
+  async findByIdAndEmployeeId(id, employeeId, { status, leaveType } = {}) {
+    const filter = { _id: id, employeeId };
+
+    if (status) {
+      filter.status = status;
+    }
+
+    if (leaveType) {
+      filter.leaveType = leaveType;
+    }
+
+    return LeaveRequest.findOne(filter).populate("leaveType");
+  }
+
+  async updateStatusById(id, status) {
+    return LeaveRequest.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true, runValidators: true },
+    ).populate("leaveType");
   }
 
   async updateByIdAndEmployeeId(id, employeeId, updateData) {

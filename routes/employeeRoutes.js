@@ -9,6 +9,7 @@ import {
 import {
   addLeaveRequestValidation,
   getLeaveRequestsQueryValidation,
+  getLeaveRequestByIdQueryValidation,
   updateLeaveRequestValidation,
   leaveRequestIdParamValidation,
   validateReq,
@@ -35,7 +36,7 @@ router.get(
 router.get("/getAllLeaveTypes", getAllLeaveTypes);
 router.get(
   "/leave-requests/:id",
-  leaveRequestIdParamValidation,
+  getLeaveRequestByIdQueryValidation,
   validateReq,
   getLeaveRequestById,
 );
