@@ -4,6 +4,7 @@ import {
   getAllEmployees,
   updateEmployeeById,
   deleteEmployeeById,
+  setEmployeeManager,
 } from "../controllers/adminController.js";
 import { getAllManagers, getManagersList } from "../controllers/managersController.js";
 import {
@@ -148,4 +149,5 @@ router.delete(
   deleteAdminSettingsById,
 );
 
+router.get("/set-employee-manager", setEmployeeManager);
 export default router;

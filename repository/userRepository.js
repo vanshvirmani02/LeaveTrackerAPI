@@ -13,6 +13,19 @@ class UserRepository {
     return User.findById(id);
   }
 
+  async findEmployeesForManagerAssignment(role) {
+    return User.find({ role })
+      .select("name employeeId")
+      .sort({ name: 1 })
+      .lean();
+  }
+
+  async findByEmployeeId(employeeId) {
+    return User.findOne({ employeeId })
+      .select("-password")
+      .populate("managerId", "name employeeId");
+  }
+
   async createUser(userData) {
     return User.create(userData);
   }

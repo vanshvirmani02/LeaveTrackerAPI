@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { LEAVE_REQUEST_STATUS } from "../config/constants.js";
 
 const leaveRequestSchema = new mongoose.Schema(
   {
@@ -24,6 +25,11 @@ const leaveRequestSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    status: {
+      type: String,
+      enum: Object.values(LEAVE_REQUEST_STATUS),
+      default: LEAVE_REQUEST_STATUS.PENDING,
+    },
     reason: {
       type: String,
       trim: true,
@@ -36,6 +42,14 @@ const leaveRequestSchema = new mongoose.Schema(
   {
     timestamps: true,
   }
+);
+
+leaveRequestSchema.index(
+  { employeeId: 1, leaveType: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: LEAVE_REQUEST_STATUS.PENDING },
+  },
 );
 
 const LeaveRequest = mongoose.model("LeaveRequest", leaveRequestSchema);

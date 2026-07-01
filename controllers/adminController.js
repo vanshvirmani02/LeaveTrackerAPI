@@ -202,3 +202,28 @@ export const deleteEmployeeById = asyncHandler(async (req, res) => {
     message: "Employee deleted successfully.",
   });
 });
+
+export const setEmployeeManager = asyncHandler(async (req, res) => {
+  const employees = await userRepository.findEmployeesForManagerAssignment(
+    ROLES.EMPLOYEE,
+  );
+
+  if (employees.length === 0) {
+    return res.status(200).json({
+      success: true,
+      count: 0,
+      message: "No employees found.",
+      employees: [],
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    count: employees.length,
+    employees: employees.map(({ _id, name, employeeId }) => ({
+      _id,
+      name,
+      employeeId,
+    })),
+  });
+});
