@@ -5,7 +5,7 @@ import {
   updateEmployeeById,
   deleteEmployeeById,
 } from "../controllers/adminController.js";
-import { getAllManagers } from "../controllers/managersController.js";
+import { getAllManagers, getManagersList } from "../controllers/managersController.js";
 import {
   addLeaveType,
   getAllLeaveTypes,
@@ -63,6 +63,7 @@ router.get(
   validateReq,
   getAllEmployees,
 );
+router.get("/managers/list", getManagersList);
 router.get("/managers", getAllManagers);
 router.put(
   "/employees/:id",

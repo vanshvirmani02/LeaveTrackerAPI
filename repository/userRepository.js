@@ -72,6 +72,21 @@ class UserRepository {
     return User.findByIdAndDelete(id);
   }
 
+  async findAllManagersIdAndName() {
+    const managerIds = await User.distinct("managerId", {
+      managerId: { $ne: null },
+    });
+
+    if (!managerIds.length) {
+      return [];
+    }
+
+    return User.find({ _id: { $in: managerIds } })
+      .select("name")
+      .sort({ name: 1 })
+      .lean();
+  }
+
   async findAllManagersWithTeamCount() {
     return User.aggregate([
       { $match: { managerId: { $ne: null } } },

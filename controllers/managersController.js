@@ -19,6 +19,36 @@ const formatManager = (manager) => {
   };
 };
 
+export const getManagersList = asyncHandler(async (req, res) => {
+  const isAdmin = req.user.role === ROLES.ADMIN;
+  if (!isAdmin) {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. Admin privileges required.",
+    });
+  }
+
+  const managers = await userRepository.findAllManagersIdAndName();
+
+  if (managers.length === 0) {
+    return res.status(200).json({
+      success: true,
+      count: 0,
+      message: "No managers found.",
+      managers: [],
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    count: managers.length,
+    managers: managers.map((manager) => ({
+      id: manager._id.toString(),
+      name: manager.name,
+    })),
+  });
+});
+
 export const getAllManagers = asyncHandler(async (req, res) => {
   const isAdmin = req.user.role === ROLES.ADMIN;
   if (!isAdmin) {
