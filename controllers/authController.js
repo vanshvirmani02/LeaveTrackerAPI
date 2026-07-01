@@ -147,6 +147,7 @@ export const loginUser = asyncHandler(async (req, res) => {
     name: existingUser.name,
     email: existingUser.email,
     joiningDate: existingUser.joiningDate.toISOString(),
+    role: existingUser.role,
   };
 
   const { accessToken, refreshToken } = await generateAndReturnTokens({
