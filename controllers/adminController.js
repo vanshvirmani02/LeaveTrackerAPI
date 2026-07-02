@@ -3,7 +3,12 @@ import userRepository from "../repository/userRepository.js";
 import leaveRequestRepository from "../repository/leaveRequestRepository.js";
 import leaveTypeRepository from "../repository/leaveTypeRepository.js";
 import leaveBalanceRepository from "../repository/leaveBalanceRepository.js";
+import holidayRepository from "../repository/holidayRepository.js";
 import { formatLeaveRequest } from "./leaveRequestController.js";
+import {
+  calculateAllocatedLeaves,
+  calculateLeaveDays,
+} from "../utils/leaveAllocationUtils.js";
 import {
   ROLES,
   USER_STATUS,
@@ -236,8 +241,11 @@ export const deleteEmployeeById = asyncHandler(async (req, res) => {
 });
 
 export const setEmployeeManager = asyncHandler(async (req, res) => {
+  const excludeId = req.body?.id ?? req.query?.id;
+
   const employees = await userRepository.findEmployeesForManagerAssignment(
     ROLES.EMPLOYEE,
+    { excludeId },
   );
 
   if (employees.length === 0) {
@@ -314,6 +322,61 @@ export const actionLeaveRequest = asyncHandler(async (req, res) => {
     });
   }
 
+  const employee = await userRepository.findByEmployeeId(employeeId);
+  if (!employee) {
+    return res.status(404).json({
+      success: false,
+      message: "Employee not found.",
+    });
+  }
+
+  const holidays = await holidayRepository.findBetweenDates(
+    leaveRequest.startDate,
+    leaveRequest.endDate,
+  );
+
+  const leaveDays = calculateLeaveDays({
+    startDate: leaveRequest.startDate,
+    endDate: leaveRequest.endDate,
+    halfDay: leaveRequest.halfDay,
+    holidays,
+  });
+
+  if (leaveDays <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Leave request has no applicable leave days after excluding holidays.",
+    });
+  }
+
+  const allocatedLeaves = calculateAllocatedLeaves({
+    annualQuota: leaveTypeDoc.annualQuota,
+    accrualType: leaveTypeDoc.accrualType,
+    joiningDate: employee.joiningDate,
+    referenceDate: leaveRequest.startDate,
+  });
+
+  const existingLeaveBalance =
+    await leaveBalanceRepository.findByEmployeeIdAndLeaveTypeId(
+      employeeId,
+      leaveType,
+    );
+
+  const currentConsumedLeaves = existingLeaveBalance?.consumedLeaves ?? 0;
+
+  if (currentConsumedLeaves + leaveDays > allocatedLeaves) {
+    return res.status(400).json({
+      success: false,
+      message: "Insufficient leave balance for approval.",
+      leaveBalance: {
+        allocatedLeaves,
+        consumedLeaves: currentConsumedLeaves,
+        requestedLeaveDays: leaveDays,
+        availableLeaves: Math.max(allocatedLeaves - currentConsumedLeaves, 0),
+      },
+    });
+  }
+
   const updatedLeaveRequest = await leaveRequestRepository.updateStatusById(
     id,
     LEAVE_REQUEST_STATUS.APPROVED,
@@ -322,7 +385,8 @@ export const actionLeaveRequest = asyncHandler(async (req, res) => {
   const leaveBalance = await leaveBalanceRepository.upsertOnApprove({
     employeeId,
     leaveTypeId: leaveType,
-    allocatedLeaves: leaveTypeDoc.annualQuota,
+    allocatedLeaves,
+    leaveDays,
   });
 
   return res.status(200).json({

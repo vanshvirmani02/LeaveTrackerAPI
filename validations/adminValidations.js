@@ -116,3 +116,9 @@ export const getEmployeesQueryValidation = [
     .isLength({ max: 100 })
     .withMessage("Manager name must not exceed 100 characters."),
 ];
+
+export const setEmployeeManagerValidation = [
+  body("id").optional().custom(mongoIdValidator),
+
+  query("id").optional().custom(mongoIdValidator),
+];

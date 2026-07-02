@@ -26,6 +26,18 @@ class HolidayRepository {
     return Holiday.find().sort({ date: 1 });
   }
 
+  async findBetweenDates(startDate, endDate) {
+    const start = new Date(startDate);
+    start.setUTCHours(0, 0, 0, 0);
+
+    const end = new Date(endDate);
+    end.setUTCHours(23, 59, 59, 999);
+
+    return Holiday.find({
+      date: { $gte: start, $lte: end },
+    }).sort({ date: 1 });
+  }
+
   async updateById(id, updateData) {
     return Holiday.findByIdAndUpdate(id, updateData, {
       new: true,

@@ -5,12 +5,18 @@ class LeaveBalanceRepository {
     return LeaveBalance.findOne({ employeeId, leaveTypeId });
   }
 
-  async upsertOnApprove({ employeeId, leaveTypeId, allocatedLeaves }) {
+  async upsertOnApprove({
+    employeeId,
+    leaveTypeId,
+    allocatedLeaves,
+    leaveDays,
+  }) {
     return LeaveBalance.findOneAndUpdate(
       { employeeId, leaveTypeId },
       {
-        $setOnInsert: { allocatedLeaves },
-        $inc: { consumedLeaves: 1 },
+        $set: { allocatedLeaves },
+        $inc: { consumedLeaves: leaveDays },
+        $setOnInsert: { employeeId, leaveTypeId },
       },
       { upsert: true, new: true, runValidators: true },
     );

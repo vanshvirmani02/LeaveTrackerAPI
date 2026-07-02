@@ -13,8 +13,14 @@ class UserRepository {
     return User.findById(id);
   }
 
-  async findEmployeesForManagerAssignment(role) {
-    return User.find({ role })
+  async findEmployeesForManagerAssignment(role, { excludeId } = {}) {
+    const filter = { role };
+
+    if (excludeId) {
+      filter._id = { $ne: excludeId };
+    }
+
+    return User.find(filter)
       .select("name employeeId")
       .sort({ name: 1 })
       .lean();

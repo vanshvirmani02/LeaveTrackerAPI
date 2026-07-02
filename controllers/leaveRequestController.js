@@ -1,7 +1,13 @@
 import asyncHandler from "../middleware/asyncHandler.js";
 import leaveRequestRepository from "../repository/leaveRequestRepository.js";
 import leaveTypeRepository from "../repository/leaveTypeRepository.js";
+import leaveBalanceRepository from "../repository/leaveBalanceRepository.js";
+import holidayRepository from "../repository/holidayRepository.js";
 import userRepository from "../repository/userRepository.js";
+import {
+  calculateAllocatedLeaves,
+  calculateLeaveDays,
+} from "../utils/leaveAllocationUtils.js";
 import { LEAVE_TYPE_STATUS, LEAVE_REQUEST_STATUS } from "../config/constants.js";
 
 export const formatLeaveRequest = (leaveRequest, { employeeName, managerName } = {}) => {
@@ -79,6 +85,71 @@ export const createLeaveRequest = asyncHandler(async (req, res) => {
     return res.status(400).json({
       success: false,
       message: dateValidation.message,
+    });
+  }
+
+  const employee = await userRepository.findByEmployeeId(employeeId);
+  if (!employee) {
+    return res.status(404).json({
+      success: false,
+      message: "Employee not found.",
+    });
+  }
+
+  const allocatedLeaves = calculateAllocatedLeaves({
+    annualQuota: leaveTypeValidation.leaveType.annualQuota,
+    accrualType: leaveTypeValidation.leaveType.accrualType,
+    joiningDate: employee.joiningDate,
+    referenceDate: startDate,
+  });
+
+  const existingLeaveBalance =
+    await leaveBalanceRepository.findByEmployeeIdAndLeaveTypeId(
+      employeeId,
+      leaveType,
+    );
+
+  const consumedLeaves = existingLeaveBalance?.consumedLeaves ?? 0;
+  const availableLeaves = allocatedLeaves - consumedLeaves;
+
+  if (availableLeaves <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "No leave left for this leave type.",
+      leaveBalance: {
+        allocatedLeaves,
+        consumedLeaves,
+        availableLeaves: 0,
+      },
+    });
+  }
+
+  const holidays = await holidayRepository.findBetweenDates(startDate, endDate);
+  const requestedLeaveDays = calculateLeaveDays({
+    startDate,
+    endDate,
+    halfDay: halfDay ?? false,
+    holidays,
+  });
+
+  if (requestedLeaveDays <= 0) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "Leave request has no applicable leave days after excluding holidays.",
+    });
+  }
+
+  if (requestedLeaveDays > availableLeaves) {
+    return res.status(400).json({
+      success: false,
+      message: "Insufficient leave balance for this leave type.",
+      leaveBalance: {
+        allocatedLeaves,
+        consumedLeaves,
+        availableLeaves,
+        requestedLeaveDays,
+      },
     });
   }
 

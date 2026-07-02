@@ -37,6 +37,7 @@ import {
   updateEmployeeValidation,
   employeeIdParamValidation,
   getEmployeesQueryValidation,
+  setEmployeeManagerValidation,
   addLeaveTypeValidation,
   updateLeaveTypeValidation,
   leaveTypeIdParamValidation,
@@ -152,7 +153,10 @@ router.delete(
   deleteAdminSettingsById,
 );
 
-router.get("/set-employee-manager", setEmployeeManager);
+router
+  .route("/set-employee-manager")
+  .get(setEmployeeManagerValidation, validateReq, setEmployeeManager)
+  .post(setEmployeeManagerValidation, validateReq, setEmployeeManager);
 router.get(
   "/leave-all-requests",
   getAllLeaveRequestsQueryValidation,
