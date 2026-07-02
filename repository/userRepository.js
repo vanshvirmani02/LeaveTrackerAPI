@@ -13,6 +13,12 @@ class UserRepository {
     return User.findById(id);
   }
 
+  async findByIdWithManager(id) {
+    return User.findById(id)
+      .select("-password")
+      .populate("managerId", "name employeeId email contactNo designation");
+  }
+
   async findEmployeesForManagerAssignment(role, { excludeId } = {}) {
     const filter = { role };
 
@@ -40,6 +46,12 @@ class UserRepository {
     return User.find({ employeeId: { $in: employeeIds } })
       .select("employeeId name managerId")
       .populate("managerId", "name");
+  }
+
+  async findByManagerId(managerId) {
+    return User.find({ managerId })
+      .select("employeeId name")
+      .sort({ name: 1 });
   }
 
   async findEmployeeIdsByName(employeeName) {

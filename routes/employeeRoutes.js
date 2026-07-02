@@ -6,6 +6,8 @@ import {
   updateLeaveRequestById,
   deleteLeaveRequestById,
 } from "../controllers/leaveRequestController.js";
+import { getAllHolidays, getManagerHolidays } from "../controllers/holidayController.js";
+import { getUserProfile } from "../controllers/authController.js";
 import {
   addLeaveRequestValidation,
   getLeaveRequestsQueryValidation,
@@ -18,6 +20,8 @@ import { authHandler } from "../middleware/authHandler.js";
 import { employeeHandler } from "../middleware/employeeHandler.js";
 import { getAllLeaveTypes } from "../controllers/leaveTypeController.js";
 const router = express.Router();
+
+
 
 router.use(authHandler, employeeHandler);
 
@@ -33,7 +37,10 @@ router.get(
   validateReq,
   getMyLeaveRequests,
 );
+router.get("/holidays", getAllHolidays);
+router.get("/holidays/:employeeId", getAllHolidays);
 router.get("/getAllLeaveTypes", getAllLeaveTypes);
+router.get("/profile", getUserProfile);
 router.get(
   "/leave-requests/:id",
   getLeaveRequestByIdQueryValidation,
@@ -52,5 +59,5 @@ router.delete(
   validateReq,
   deleteLeaveRequestById,
 );
-
+router.get("/manager/holidays", getManagerHolidays);
 export default router;

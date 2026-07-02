@@ -1,5 +1,9 @@
 import asyncHandler from "../middleware/asyncHandler.js";
 import holidayRepository from "../repository/holidayRepository.js";
+import leaveRequestRepository from "../repository/leaveRequestRepository.js";
+import userRepository from "../repository/userRepository.js";
+import { calculateLeaveDays } from "../utils/leaveAllocationUtils.js";
+import { ROLES } from "../config/constants.js";
 
 const formatHoliday = (holiday) => {
   const doc = holiday.toObject ? holiday.toObject() : { ...holiday };
@@ -38,14 +42,48 @@ export const addHoliday = asyncHandler(async (req, res) => {
 });
 
 export const getAllHolidays = asyncHandler(async (req, res) => {
+  const employeeId = req.user?.employeeId ?? req.query.employeeId;
+
+  if (
+    employeeId &&
+    req.user?.employeeId &&
+    req.user.employeeId !== employeeId
+  ) {
+    return res.status(403).json({
+      success: false,
+      message: "You can only view your own approved leaves.",
+    });
+  }
+
   const holidays = await holidayRepository.findAll();
 
-  if (holidays.length === 0) {
+  if (!employeeId) {
+    if (holidays.length === 0) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        message: "No holidays found.",
+        holidays: [],
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      count: holidays.length,
+      holidays: holidays.map(formatHoliday),
+    });
+  }
+
+  const approvedLeaves =
+    await leaveRequestRepository.findApprovedByEmployeeId(employeeId);
+
+  if (holidays.length === 0 && approvedLeaves.length === 0) {
     return res.status(200).json({
       success: true,
       count: 0,
-      message: "No holidays found.",
+      message: "No holidays or approved leaves found.",
       holidays: [],
+      approvedLeaves: [],
     });
   }
 
@@ -53,6 +91,68 @@ export const getAllHolidays = asyncHandler(async (req, res) => {
     success: true,
     count: holidays.length,
     holidays: holidays.map(formatHoliday),
+    approvedLeavesCount: approvedLeaves.length,
+    approvedLeaves: approvedLeaves.map((leave) => ({
+      id: leave._id?.toString(),
+      employeeId: leave.employeeId,
+      startDate: leave.startDate,
+      endDate: leave.endDate,
+      type: leave.leaveType?.leaveName ?? null,
+      status: leave.status,
+      leaveDays: calculateLeaveDays({
+        startDate: leave.startDate,
+        endDate: leave.endDate,
+        halfDay: leave.halfDay,
+        holidays,
+      }),
+    })),
+  });
+});
+
+export const getManagerHolidays = asyncHandler(async (req, res) => {
+  const managerId = req.user?.id;
+  const teamMembers = await userRepository.findByManagerId(managerId);
+
+  if (teamMembers.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "No employees are assigned to this manager.",
+    });
+  }
+
+  const employeeIds = teamMembers
+    .map((member) => member.employeeId)
+    .filter(Boolean);
+
+  const holidays = await holidayRepository.findAll();
+  const approvedLeaves =
+    await leaveRequestRepository.findApprovedByEmployeeIds(employeeIds);
+
+  const employeeNameMap = teamMembers.reduce((map, member) => {
+    map.set(member.employeeId, member.name);
+    return map;
+  }, new Map());
+
+  return res.status(200).json({
+    success: true,
+    count: holidays.length,
+    holidays: holidays.map(formatHoliday),
+    approvedLeavesCount: approvedLeaves.length,
+    approvedLeaves: approvedLeaves.map((leave) => ({
+      id: leave._id?.toString(),
+      employeeId: leave.employeeId,
+      employeeName: employeeNameMap.get(leave.employeeId) ?? null,
+      startDate: leave.startDate,
+      endDate: leave.endDate,
+      type: leave.leaveType?.leaveName ?? null,
+      status: leave.status,
+      leaveDays: calculateLeaveDays({
+        startDate: leave.startDate,
+        endDate: leave.endDate,
+        halfDay: leave.halfDay,
+        holidays,
+      }),
+    })),
   });
 });
 

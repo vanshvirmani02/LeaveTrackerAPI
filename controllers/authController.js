@@ -184,3 +184,41 @@ export const loginUser = asyncHandler(async (req, res) => {
     refreshToken,
   });
 });
+
+export const getUserProfile = asyncHandler(async (req, res) => {
+  const userId = req.user?.id;
+  const employeeId = req.user?.employeeId;
+
+  if (!userId || !employeeId) {
+    return res.status(400).json({
+      success: false,
+      message: "User context is missing.",
+    });
+  }
+
+  const user = await userRepository.findByIdWithManager(userId);
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found.",
+    });
+  }
+
+  if (user.employeeId !== employeeId) {
+    return res.status(403).json({
+      success: false,
+      message: "Invalid user context.",
+    });
+  }
+
+  const userData = user.toObject ? user.toObject() : { ...user };
+  const { _id, ...rest } = userData;
+
+  return res.status(200).json({
+    success: true,
+    profile: {
+      ...rest,
+      id: _id?.toString(),
+    },
+  });
+});

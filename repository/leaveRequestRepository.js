@@ -18,6 +18,28 @@ class LeaveRequestRepository {
     });
   }
 
+  async findApprovedByEmployeeId(employeeId) {
+    return LeaveRequest.find({
+      employeeId,
+      status: LEAVE_REQUEST_STATUS.APPROVED,
+    })
+      .populate("leaveType")
+      .sort({ startDate: 1 });
+  }
+
+  async findApprovedByEmployeeIds(employeeIds) {
+    if (!employeeIds.length) {
+      return [];
+    }
+
+    return LeaveRequest.find({
+      employeeId: { $in: employeeIds },
+      status: LEAVE_REQUEST_STATUS.APPROVED,
+    })
+      .populate("leaveType")
+      .sort({ startDate: 1 });
+  }
+
   async findByEmployeeId(employeeId, { status, startDate, endDate } = {}) {
     const filter = { employeeId };
 
