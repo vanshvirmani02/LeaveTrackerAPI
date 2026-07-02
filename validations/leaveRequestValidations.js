@@ -98,6 +98,47 @@ export const getLeaveRequestsQueryValidation = [
     }),
 ];
 
+export const getAllLeaveRequestsQueryValidation = [
+  query("status")
+    .optional()
+    .isIn(leaveRequestStatusValues)
+    .withMessage(
+      `Status must be one of: ${leaveRequestStatusValues.join(", ")}.`,
+    ),
+
+  query("employeeName")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage("Employee name cannot be empty.")
+    .isLength({ max: 100 })
+    .withMessage("Employee name must not exceed 100 characters."),
+
+  query("startDate")
+    .optional()
+    .isISO8601({ strict: true })
+    .withMessage("Start date must be a valid date."),
+
+  query("endDate")
+    .optional()
+    .isISO8601({ strict: true })
+    .withMessage("End date must be a valid date.")
+    .custom((endDate, { req }) => {
+      if (!req.query?.startDate) {
+        return true;
+      }
+      if (new Date(endDate) < new Date(req.query.startDate)) {
+        throw new Error("End date must be on or after start date.");
+      }
+      return true;
+    }),
+
+  query("sortOrder")
+    .optional()
+    .isIn(["asc", "desc"])
+    .withMessage("Sort order must be either asc or desc."),
+];
+
 export const updateLeaveRequestValidation = [
   param("id").custom(mongoIdValidator),
 

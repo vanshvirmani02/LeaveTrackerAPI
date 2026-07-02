@@ -26,6 +26,26 @@ class UserRepository {
       .populate("managerId", "name employeeId");
   }
 
+  async findByEmployeeIds(employeeIds) {
+    if (!employeeIds.length) {
+      return [];
+    }
+
+    return User.find({ employeeId: { $in: employeeIds } })
+      .select("employeeId name managerId")
+      .populate("managerId", "name");
+  }
+
+  async findEmployeeIdsByName(employeeName) {
+    const employees = await User.find({
+      name: { $regex: employeeName.trim(), $options: "i" },
+    }).select("employeeId");
+
+    return employees
+      .map((employee) => employee.employeeId)
+      .filter(Boolean);
+  }
+
   async createUser(userData) {
     return User.create(userData);
   }

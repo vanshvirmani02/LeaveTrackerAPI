@@ -42,6 +42,43 @@ class LeaveRequestRepository {
       .sort({ createdAt: -1 });
   }
 
+  async findAll({
+    status,
+    startDate,
+    endDate,
+    employeeIds,
+    sortOrder = "desc",
+  } = {}) {
+    const filter = {};
+
+    if (status) {
+      filter.status = status;
+    }
+
+    if (employeeIds?.length) {
+      filter.employeeId =
+        employeeIds.length === 1 ? employeeIds[0] : { $in: employeeIds };
+    }
+
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setUTCHours(0, 0, 0, 0);
+      filter.startDate = { $gte: start };
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setUTCHours(23, 59, 59, 999);
+      filter.endDate = { $lte: end };
+    }
+
+    const sortDirection = sortOrder === "asc" ? 1 : -1;
+
+    return LeaveRequest.find(filter)
+      .populate("leaveType")
+      .sort({ createdAt: sortDirection });
+  }
+
   async findByIdAndEmployeeId(id, employeeId, { status, leaveType } = {}) {
     const filter = { _id: id, employeeId };
 

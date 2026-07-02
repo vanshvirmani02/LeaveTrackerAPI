@@ -333,3 +333,65 @@ export const deleteLeaveRequestById = asyncHandler(async (req, res) => {
     message: "Leave request deleted successfully.",
   });
 });
+
+export const getAllLeaveRequests = asyncHandler(async (req, res) => {
+  const { status, employeeName, startDate, endDate, sortOrder = "desc" } =
+    req.query;
+
+  let filteredEmployeeIds;
+  if (employeeName) {
+    filteredEmployeeIds = await userRepository.findEmployeeIdsByName(employeeName);
+    if (filteredEmployeeIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        message: "No leave requests found.",
+        leaveRequests: [],
+      });
+    }
+  }
+
+  const leaveRequests = await leaveRequestRepository.findAll({
+    status,
+    startDate,
+    endDate,
+    employeeIds: filteredEmployeeIds,
+    sortOrder,
+  });
+
+  if (leaveRequests.length === 0) {
+    return res.status(200).json({
+      success: true,
+      count: 0,
+      message: "No leave requests found.",
+      leaveRequests: [],
+    });
+  }
+
+  const employeeIds = [
+    ...new Set(leaveRequests.map((leaveRequest) => leaveRequest.employeeId)),
+  ];
+  const employees = await userRepository.findByEmployeeIds(employeeIds);
+
+  const employeeDetailsMap = employees.reduce((map, employee) => {
+    map.set(employee.employeeId, {
+      employeeName: employee.name,
+      managerName: employee.managerId?.name ?? null,
+    });
+    return map;
+  }, new Map());
+
+  res.status(200).json({
+    success: true,
+    count: leaveRequests.length,
+    leaveRequests: leaveRequests.map((leaveRequest) =>
+      formatLeaveRequest(
+        leaveRequest,
+        employeeDetailsMap.get(leaveRequest.employeeId) ?? {
+          employeeName: null,
+          managerName: null,
+        },
+      ),
+    ),
+  });
+});

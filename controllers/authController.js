@@ -116,7 +116,6 @@ export const loginUser = asyncHandler(async (req, res) => {
     role
   } = req.body;
   const { deviceType, deviceId } = getClientContext(req);
-
   if (!isAllowedOrigin(req.headers.origin)) {
     return res.status(403).json({
       success: false,

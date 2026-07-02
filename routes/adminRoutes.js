@@ -50,11 +50,12 @@ import {
   updateAdminSettingsValidation,
   adminSettingsIdParamValidation,
   actionLeaveRequestValidation,
+  getAllLeaveRequestsQueryValidation,
   validateReq,
 } from "../validations/index.js";
 import { authHandler } from "../middleware/authHandler.js";
 import { adminHandler } from "../middleware/adminHandler.js";
-
+import { getAllLeaveRequests } from "../controllers/leaveRequestController.js";
 const router = express.Router();
 
 router.use(authHandler, adminHandler);
@@ -152,7 +153,12 @@ router.delete(
 );
 
 router.get("/set-employee-manager", setEmployeeManager);
-
+router.get(
+  "/leave-all-requests",
+  getAllLeaveRequestsQueryValidation,
+  validateReq,
+  getAllLeaveRequests,
+);
 router.put(
   "/leave-requests/:id/action",
   actionLeaveRequestValidation,
