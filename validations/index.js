@@ -7,6 +7,7 @@ export * from "./leavePolicyValidations.js";
 export * from "./holidayValidations.js";
 export * from "./adminSettingsValidations.js";
 export * from "./leaveRequestValidations.js";
+export * from "./leaveBalanceValidations.js";
 
 export const validateReq = (req, res, next) => {
   const errors = validationResult(req);

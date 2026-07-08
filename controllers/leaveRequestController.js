@@ -410,7 +410,39 @@ export const getAllLeaveRequests = asyncHandler(async (req, res) => {
     req.query;
 
   let filteredEmployeeIds;
-  if (employeeName) {
+
+  if (req.leaveRequestScope === "team") {
+    const teamMembers = await userRepository.findByManagerId(req.user?.id);
+    const teamEmployeeIds = teamMembers
+      .map((member) => member.employeeId)
+      .filter(Boolean);
+
+    if (teamEmployeeIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No employees are assigned to this manager.",
+      });
+    }
+
+    if (employeeName) {
+      const nameMatchedIds =
+        await userRepository.findEmployeeIdsByName(employeeName);
+      filteredEmployeeIds = teamEmployeeIds.filter((id) =>
+        nameMatchedIds.includes(id),
+      );
+
+      if (filteredEmployeeIds.length === 0) {
+        return res.status(200).json({
+          success: true,
+          count: 0,
+          message: "No leave requests found.",
+          leaveRequests: [],
+        });
+      }
+    } else {
+      filteredEmployeeIds = teamEmployeeIds;
+    }
+  } else if (employeeName) {
     filteredEmployeeIds = await userRepository.findEmployeeIdsByName(employeeName);
     if (filteredEmployeeIds.length === 0) {
       return res.status(200).json({

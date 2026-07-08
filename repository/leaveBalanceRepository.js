@@ -5,6 +5,19 @@ class LeaveBalanceRepository {
     return LeaveBalance.findOne({ employeeId, leaveTypeId });
   }
 
+  async findByEmployeeIds(employeeIds) {
+    const filter = {};
+
+    if (employeeIds?.length) {
+      filter.employeeId =
+        employeeIds.length === 1 ? employeeIds[0] : { $in: employeeIds };
+    }
+
+    return LeaveBalance.find(filter)
+      .populate("leaveTypeId")
+      .sort({ employeeId: 1, createdAt: -1 });
+  }
+
   async upsertOnApprove({
     employeeId,
     leaveTypeId,

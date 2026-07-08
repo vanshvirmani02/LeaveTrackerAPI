@@ -20,6 +20,13 @@ export const addLeaveTypeValidation = [
     .isLength({ max: 100 })
     .withMessage("Leave name must not exceed 100 characters."),
 
+  body("policyName")
+    .trim()
+    .notEmpty()
+    .withMessage("Policy name is required.")
+    .isLength({ max: 100 })
+    .withMessage("Policy name must not exceed 100 characters."),
+
   body("annualQuota")
     .notEmpty()
     .withMessage("Annual quota is required.")
@@ -46,6 +53,21 @@ export const addLeaveTypeValidation = [
     .isBoolean()
     .withMessage("Encashment must be a boolean."),
 
+  body("accrualRules")
+    .optional()
+    .isString()
+    .withMessage("Accrual rules must be a string."),
+
+  body("carryForwardRules")
+    .optional()
+    .isString()
+    .withMessage("Carry forward rules must be a string."),
+
+  body("probationRules")
+    .optional()
+    .isString()
+    .withMessage("Probation rules must be a string."),
+
   body("status")
     .optional()
     .isIn(leaveTypeStatusValues)
@@ -62,6 +84,14 @@ export const updateLeaveTypeValidation = [
     .withMessage("Leave name cannot be empty.")
     .isLength({ max: 100 })
     .withMessage("Leave name must not exceed 100 characters."),
+
+  body("policyName")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage("Policy name cannot be empty.")
+    .isLength({ max: 100 })
+    .withMessage("Policy name must not exceed 100 characters."),
 
   body("annualQuota")
     .optional()
@@ -87,6 +117,21 @@ export const updateLeaveTypeValidation = [
     .optional()
     .isBoolean()
     .withMessage("Encashment must be a boolean."),
+
+  body("accrualRules")
+    .optional()
+    .isString()
+    .withMessage("Accrual rules must be a string."),
+
+  body("carryForwardRules")
+    .optional()
+    .isString()
+    .withMessage("Carry forward rules must be a string."),
+
+  body("probationRules")
+    .optional()
+    .isString()
+    .withMessage("Probation rules must be a string."),
 
   body("status")
     .optional()

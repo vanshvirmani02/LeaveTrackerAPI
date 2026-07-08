@@ -13,11 +13,15 @@ const formatLeaveType = (leaveType) => {
 export const addLeaveType = asyncHandler(async (req, res) => {
   const {
     leaveName,
+    policyName,
     annualQuota,
     accrualType,
     carryForward,
     maxCarryForward,
     encashment,
+    accrualRules,
+    carryForwardRules,
+    probationRules,
     status,
   } = req.body;
 
@@ -31,11 +35,15 @@ export const addLeaveType = asyncHandler(async (req, res) => {
 
   const leaveType = await leaveTypeRepository.createLeaveType({
     leaveName: leaveName.trim(),
+    policyName: policyName.trim(),
     annualQuota,
     accrualType,
     carryForward,
     maxCarryForward,
     encashment,
+    accrualRules: accrualRules?.trim(),
+    carryForwardRules: carryForwardRules?.trim(),
+    probationRules: probationRules?.trim(),
     status,
   });
 
@@ -69,11 +77,15 @@ export const updateLeaveTypeById = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const {
     leaveName,
+    policyName,
     annualQuota,
     accrualType,
     carryForward,
     maxCarryForward,
     encashment,
+    accrualRules,
+    carryForwardRules,
+    probationRules,
     status,
   } = req.body;
 
@@ -97,11 +109,16 @@ export const updateLeaveTypeById = asyncHandler(async (req, res) => {
 
   const updateData = {};
   if (leaveName !== undefined) updateData.leaveName = leaveName.trim();
+  if (policyName !== undefined) updateData.policyName = policyName.trim();
   if (annualQuota !== undefined) updateData.annualQuota = annualQuota;
   if (accrualType !== undefined) updateData.accrualType = accrualType;
   if (carryForward !== undefined) updateData.carryForward = carryForward;
   if (maxCarryForward !== undefined) updateData.maxCarryForward = maxCarryForward;
   if (encashment !== undefined) updateData.encashment = encashment;
+  if (accrualRules !== undefined) updateData.accrualRules = accrualRules.trim();
+  if (carryForwardRules !== undefined)
+    updateData.carryForwardRules = carryForwardRules.trim();
+  if (probationRules !== undefined) updateData.probationRules = probationRules.trim();
   if (status !== undefined) updateData.status = status;
 
   const updatedLeaveType = await leaveTypeRepository.updateById(id, updateData);

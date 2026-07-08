@@ -40,6 +40,19 @@ class LeaveRequestRepository {
       .sort({ startDate: 1 });
   }
 
+  async findByEmployeeIds(employeeIds) {
+    const filter = {};
+
+    if (employeeIds?.length) {
+      filter.employeeId =
+        employeeIds.length === 1 ? employeeIds[0] : { $in: employeeIds };
+    }
+
+    return LeaveRequest.find(filter)
+      .populate("leaveType")
+      .sort({ startDate: -1 });
+  }
+
   async findByEmployeeId(employeeId, { status, startDate, endDate } = {}) {
     const filter = { employeeId };
 

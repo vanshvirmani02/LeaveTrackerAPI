@@ -5,7 +5,13 @@ import {
   getLeaveRequestById,
   updateLeaveRequestById,
   deleteLeaveRequestById,
+  getAllLeaveRequests,
 } from "../controllers/leaveRequestController.js";
+import { actionLeaveRequest } from "../controllers/adminController.js";
+import {
+  getMyLeaveBalances,
+  getLeaveBalances,
+} from "../controllers/leaveBalanceController.js";
 import { getAllHolidays, getManagerHolidays } from "../controllers/holidayController.js";
 import { getUserProfile } from "../controllers/authController.js";
 import {
@@ -14,10 +20,14 @@ import {
   getLeaveRequestByIdQueryValidation,
   updateLeaveRequestValidation,
   leaveRequestIdParamValidation,
+  getAllLeaveRequestsQueryValidation,
+  actionLeaveRequestValidation,
+  getLeaveBalancesQueryValidation,
   validateReq,
 } from "../validations/index.js";
 import { authHandler } from "../middleware/authHandler.js";
 import { employeeHandler } from "../middleware/employeeHandler.js";
+import { teamScopeHandler } from "../middleware/teamScopeHandler.js";
 import { getAllLeaveTypes } from "../controllers/leaveTypeController.js";
 const router = express.Router();
 
@@ -37,6 +47,7 @@ router.get(
   validateReq,
   getMyLeaveRequests,
 );
+router.get("/leave-balances", getMyLeaveBalances);
 router.get("/holidays", getAllHolidays);
 router.get("/holidays/:employeeId", getAllHolidays);
 router.get("/getAllLeaveTypes", getAllLeaveTypes);
@@ -60,4 +71,25 @@ router.delete(
   deleteLeaveRequestById,
 );
 router.get("/manager/holidays", getManagerHolidays);
+router.get(
+  "/manager/leave-requests",
+  teamScopeHandler,
+  getAllLeaveRequestsQueryValidation,
+  validateReq,
+  getAllLeaveRequests,
+);
+router.put(
+  "/manager/leave-requests/:id/action",
+  teamScopeHandler,
+  actionLeaveRequestValidation,
+  validateReq,
+  actionLeaveRequest,
+);
+router.get(
+  "/manager/leave-balances",
+  teamScopeHandler,
+  getLeaveBalancesQueryValidation,
+  validateReq,
+  getLeaveBalances,
+);
 export default router;

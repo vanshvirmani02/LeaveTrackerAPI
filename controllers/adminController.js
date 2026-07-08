@@ -280,6 +280,21 @@ export const actionLeaveRequest = asyncHandler(async (req, res) => {
     });
   }
 
+  if (req.leaveRequestScope === "team") {
+    const teamMembers = await userRepository.findByManagerId(req.user?.id);
+    const isTeamMember = teamMembers.some(
+      (member) => member.employeeId === leaveRequest.employeeId,
+    );
+
+    if (!isTeamMember) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Access denied. You can only act on leave requests from your team members.",
+      });
+    }
+  }
+
   if (leaveRequest.status !== LEAVE_REQUEST_STATUS.PENDING) {
     return res.status(400).json({
       success: false,

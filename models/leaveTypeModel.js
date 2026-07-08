@@ -8,6 +8,11 @@ const leaveTypeSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    policyName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     annualQuota: {
       type: Number,
       required: true,
@@ -30,6 +35,18 @@ const leaveTypeSchema = new mongoose.Schema(
     encashment: {
       type: Boolean,
       default: false,
+    },
+    accrualRules: {
+      type: String,
+      trim: true,
+    },
+    carryForwardRules: {
+      type: String,
+      trim: true,
+    },
+    probationRules: {
+      type: String,
+      trim: true,
     },
     status: {
       type: String,

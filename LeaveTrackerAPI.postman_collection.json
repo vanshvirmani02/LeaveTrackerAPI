@@ -1,0 +1,1645 @@
+{
+  "info": {
+    "_postman_id": "5b594e35-86e3-4bfd-a2fe-c40f78c8c73f",
+    "name": "LeaveTrackerAPI",
+    "description": "Postman collection for LeaveTracker API routes with demo data and required params.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            },
+            "description": "Public route to verify API is running."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Signup User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Vansh Kumar\",\n  \"email\": \"vansh.employee@example.com\",\n  \"password\": \"Pass@123\",\n  \"contactNo\": \"+91-9876543210\",\n  \"joiningDate\": \"2026-01-15\",\n  \"designation\": \"Software Engineer\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "signup"
+              ]
+            },
+            "description": "Required body: name, email, password, contactNo, joiningDate. Optional: designation.\nOptional mobile headers: x-app-id, x-device-id (x-device-id required when x-app-id is present)."
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "const token = data?.data?.token || data?.token || data?.data?.accessToken || data?.accessToken || data?.jwt;",
+                  "if (token) {",
+                  "  pm.collectionVariables.set('authToken', token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"Pass@123\",\n  \"role\": \"ADMIN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Required body: email, password, role (ADMIN | MANAGER | EMPLOYEE).\nOptional mobile headers: x-app-id, x-device-id (x-device-id required when x-app-id is present)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin (Auth Required)",
+      "item": [
+        {
+          "name": "Add Employee",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rahul Sharma\",\n  \"email\": \"rahul.sharma@example.com\",\n  \"password\": \"Pass@123\",\n  \"contactNo\": \"+91-9876500000\",\n  \"joiningDate\": \"2026-02-01\",\n  \"designation\": \"QA Engineer\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/employees",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "employees"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Employees",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/employees?managerId={{managerId}}&managerName={{managerName}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "employees"
+              ],
+              "query": [
+                {
+                  "key": "managerId",
+                  "value": "{{managerId}}",
+                  "description": "Optional ObjectId"
+                },
+                {
+                  "key": "managerName",
+                  "value": "{{managerName}}",
+                  "description": "Optional manager name"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Employee By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rahul Sharma Updated\",\n  \"email\": \"rahul.updated@example.com\",\n  \"password\": \"Pass@123\",\n  \"contactNo\": \"+91-9876511111\",\n  \"joiningDate\": \"2026-02-10\",\n  \"designation\": \"Senior QA Engineer\",\n  \"managerId\": \"{{managerId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/employees/{{employeeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "employees",
+                "{{employeeId}}"
+              ]
+            },
+            "description": "Path param employeeId is required."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Employee By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/employees/{{employeeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "employees",
+                "{{employeeId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Managers List",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/managers/list",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "managers",
+                "list"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Managers",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/managers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "managers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Leave Type",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"leaveName\": \"Annual Leave\",\n  \"annualQuota\": 24,\n  \"accrualType\": \"MONTHLY\",\n  \"carryForward\": true,\n  \"maxCarryForward\": 10,\n  \"encashment\": false,\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/leave-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "leave-types"
+              ]
+            },
+            "description": "Required body: leaveName, annualQuota."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Leave Types",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/leave-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "leave-types"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Leave Type By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"leaveName\": \"Casual Leave\",\n  \"annualQuota\": 12,\n  \"accrualType\": \"YEARLY\",\n  \"carryForward\": false,\n  \"maxCarryForward\": 0,\n  \"encashment\": true,\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/leave-types/{{leaveTypeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "leave-types",
+                "{{leaveTypeId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Leave Type By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/leave-types/{{leaveTypeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "leave-types",
+                "{{leaveTypeId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Leave Policy",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"policyName\": \"Default Company Policy\",\n  \"leaveTypeIds\": [\"{{leaveTypeId}}\"],\n  \"accrualRules\": \"Monthly accrual enabled.\",\n  \"carryForwardRules\": \"Max 10 days.\",\n  \"probationRules\": \"No leave in first 30 days.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/leave-policies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "leave-policies"
+              ]
+            },
+            "description": "Required body: policyName, leaveTypeIds (array of ObjectId)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Leave Policies",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/leave-policies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "leave-policies"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Leave Policy By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"policyName\": \"Updated Leave Policy\",\n  \"leaveTypeIds\": [\"{{leaveTypeId}}\"],\n  \"accrualRules\": \"Quarterly accrual rule updated.\",\n  \"carryForwardRules\": \"Carry forward up to 5 days.\",\n  \"probationRules\": \"Leave allowed after 60 days.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/leave-policies/{{leavePolicyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "leave-policies",
+                "{{leavePolicyId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Leave Policy By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/leave-policies/{{leavePolicyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "leave-policies",
+                "{{leavePolicyId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Holiday",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"holidayName\": \"Independence Day\",\n  \"date\": \"2026-08-15\",\n  \"type\": \"PUBLIC\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/holidays",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "holidays"
+              ]
+            },
+            "description": "Required body: holidayName, date, type (PUBLIC | RESTRICTED | OPTIONAL)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Holidays",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/holidays",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "holidays"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Holiday By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"holidayName\": \"Republic Day\",\n  \"date\": \"2026-01-26\",\n  \"type\": \"OPTIONAL\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/holidays/{{holidayId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "holidays",
+                "{{holidayId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Holiday By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/holidays/{{holidayId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "holidays",
+                "{{holidayId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Admin Settings",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organization\": {\n    \"organizationName\": \"Demo Leave Tracker Pvt Ltd\",\n    \"timezone\": \"Asia/Kolkata\",\n    \"fiscalYearStart\": \"2026-04-01\"\n  },\n  \"leaveSettings\": {\n    \"weekendAsWorkingDay\": false,\n    \"autoApproveSickLeave\": false,\n    \"emailNotification\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/admin-settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "admin-settings"
+              ]
+            },
+            "description": "Required body fields: organization.organizationName, organization.timezone, organization.fiscalYearStart."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Admin Settings",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/admin-settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "admin-settings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Admin Settings By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organization\": {\n    \"organizationName\": \"Demo Leave Tracker Updated\",\n    \"timezone\": \"Asia/Kolkata\",\n    \"fiscalYearStart\": \"2026-04-01\"\n  },\n  \"leaveSettings\": {\n    \"weekendAsWorkingDay\": true,\n    \"autoApproveSickLeave\": true,\n    \"emailNotification\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/admin-settings/{{adminSettingsId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "admin-settings",
+                "{{adminSettingsId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Admin Settings By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/admin-settings/{{adminSettingsId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "admin-settings",
+                "{{adminSettingsId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Set Employee Manager (GET)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/set-employee-manager?id={{employeeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "set-employee-manager"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "{{employeeId}}",
+                  "description": "Optional employee ObjectId"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Set Employee Manager (POST)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{employeeId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/set-employee-manager",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "set-employee-manager"
+              ]
+            },
+            "description": "Optional body param: id (employee ObjectId)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Leave Requests (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/leave-all-requests?status=PENDING&employeeName=Rahul&startDate=2026-01-01&endDate=2026-12-31&sortOrder=desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "leave-all-requests"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "description": "Optional: PENDING | APPROVED | REJECTED"
+                },
+                {
+                  "key": "employeeName",
+                  "value": "Rahul",
+                  "description": "Optional"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2026-01-01",
+                  "description": "Optional ISO date"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-12-31",
+                  "description": "Optional ISO date"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "Optional: asc | desc"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Action Leave Request",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"APPROVE\",\n  \"employeeId\": \"{{employeeId}}\",\n  \"leaveType\": \"{{leaveTypeId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/leave-requests/{{leaveRequestId}}/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "leave-requests",
+                "{{leaveRequestId}}",
+                "action"
+              ]
+            },
+            "description": "Required body: action (APPROVE | REJECT), employeeId, leaveType."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Leave Balances",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/leave-balances?employeeId={{employeeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "leave-balances"
+              ],
+              "query": [
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Optional. Omit to get all employees' leave balances."
+                }
+              ]
+            },
+            "description": "Admin can fetch leave balances for all employees, or filter by employeeId."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Employee (Auth Required)",
+      "item": [
+        {
+          "name": "Create Leave Request",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"leaveType\": \"{{leaveTypeId}}\",\n  \"startDate\": \"2026-07-20\",\n  \"endDate\": \"2026-07-22\",\n  \"halfDay\": false,\n  \"reason\": \"Family function\",\n  \"attachmentDoc\": \"https://example.com/documents/supporting-document.pdf\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/leave-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employee",
+                "leave-requests"
+              ]
+            },
+            "description": "Required body: leaveType (ObjectId), startDate, endDate."
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Leave Balances",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/leave-balances",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employee",
+                "leave-balances"
+              ]
+            },
+            "description": "Returns leave balances for the authenticated employee only."
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Leave Requests",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/leave-requests?status=PENDING&employeeName=Vansh&startDate=2026-01-01&endDate=2026-12-31",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employee",
+                "leave-requests"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "description": "Optional: PENDING | APPROVED | REJECTED"
+                },
+                {
+                  "key": "employeeName",
+                  "value": "Vansh",
+                  "description": "Optional"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2026-01-01",
+                  "description": "Optional ISO date"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-12-31",
+                  "description": "Optional ISO date"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Leave Request By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/leave-requests/{{leaveRequestId}}?status=PENDING&leaveType={{leaveTypeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employee",
+                "leave-requests",
+                "{{leaveRequestId}}"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "description": "Optional: PENDING | APPROVED | REJECTED"
+                },
+                {
+                  "key": "leaveType",
+                  "value": "{{leaveTypeId}}",
+                  "description": "Optional leave type ObjectId"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Leave Request By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"leaveType\": \"{{leaveTypeId}}\",\n  \"startDate\": \"2026-07-21\",\n  \"endDate\": \"2026-07-23\",\n  \"halfDay\": true,\n  \"reason\": \"Updated plan\",\n  \"attachmentDoc\": \"https://example.com/documents/updated-document.pdf\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/leave-requests/{{leaveRequestId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employee",
+                "leave-requests",
+                "{{leaveRequestId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Leave Request By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/leave-requests/{{leaveRequestId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employee",
+                "leave-requests",
+                "{{leaveRequestId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employee Holidays",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/holidays",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employee",
+                "holidays"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Holidays By Employee ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/holidays/{{employeeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employee",
+                "holidays",
+                "{{employeeId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Leave Types (Employee)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/getAllLeaveTypes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employee",
+                "getAllLeaveTypes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employee",
+                "profile"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Manager Holidays",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/manager/holidays",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employee",
+                "manager",
+                "holidays"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Team Leave Requests (Manager)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/manager/leave-requests?status=PENDING&employeeName=Rahul&startDate=2026-01-01&endDate=2026-12-31&sortOrder=desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employee",
+                "manager",
+                "leave-requests"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "description": "Optional: PENDING | APPROVED | REJECTED"
+                },
+                {
+                  "key": "employeeName",
+                  "value": "Rahul",
+                  "description": "Optional. Filters within the manager's team only."
+                },
+                {
+                  "key": "startDate",
+                  "value": "2026-01-01",
+                  "description": "Optional ISO date"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-12-31",
+                  "description": "Optional ISO date"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "Optional: asc | desc"
+                }
+              ]
+            },
+            "description": "Returns leave requests for the logged-in manager's team members only."
+          },
+          "response": []
+        },
+        {
+          "name": "Action Team Leave Request (Manager)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"APPROVE\",\n  \"employeeId\": \"{{employeeId}}\",\n  \"leaveType\": \"{{leaveTypeId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/manager/leave-requests/{{leaveRequestId}}/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employee",
+                "manager",
+                "leave-requests",
+                "{{leaveRequestId}}",
+                "action"
+              ]
+            },
+            "description": "Approve or reject a pending leave request for a team member. Required body: action (APPROVE | REJECT), employeeId, leaveType."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Team Leave Balances (Manager)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/manager/leave-balances?employeeId={{employeeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employee",
+                "manager",
+                "leave-balances"
+              ],
+              "query": [
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Optional. Omit to get all team members' leave balances. If provided, must be a team member."
+                }
+              ]
+            },
+            "description": "Returns leave balances for the logged-in manager's team members only. Same response shape as admin leave-balances."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "authToken",
+      "value": ""
+    },
+    {
+      "key": "employeeId",
+      "value": "64b7f8a9c5e4f12345678901"
+    },
+    {
+      "key": "managerId",
+      "value": "64b7f8a9c5e4f12345678902"
+    },
+    {
+      "key": "leaveTypeId",
+      "value": "64b7f8a9c5e4f12345678903"
+    },
+    {
+      "key": "leavePolicyId",
+      "value": "64b7f8a9c5e4f12345678904"
+    },
+    {
+      "key": "holidayId",
+      "value": "64b7f8a9c5e4f12345678905"
+    },
+    {
+      "key": "adminSettingsId",
+      "value": "64b7f8a9c5e4f12345678906"
+    },
+    {
+      "key": "leaveRequestId",
+      "value": "64b7f8a9c5e4f12345678907"
+    },
+    {
+      "key": "managerName",
+      "value": "Priya"
+    }
+  ]
+}

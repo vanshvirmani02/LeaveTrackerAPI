@@ -52,11 +52,13 @@ import {
   adminSettingsIdParamValidation,
   actionLeaveRequestValidation,
   getAllLeaveRequestsQueryValidation,
+  getLeaveBalancesQueryValidation,
   validateReq,
 } from "../validations/index.js";
 import { authHandler } from "../middleware/authHandler.js";
 import { adminHandler } from "../middleware/adminHandler.js";
 import { getAllLeaveRequests } from "../controllers/leaveRequestController.js";
+import { getLeaveBalances } from "../controllers/leaveBalanceController.js";
 const router = express.Router();
 
 router.use(authHandler, adminHandler);
@@ -162,6 +164,12 @@ router.get(
   getAllLeaveRequestsQueryValidation,
   validateReq,
   getAllLeaveRequests,
+);
+router.get(
+  "/leave-balances",
+  getLeaveBalancesQueryValidation,
+  validateReq,
+  getLeaveBalances,
 );
 router.put(
   "/leave-requests/:id/action",
