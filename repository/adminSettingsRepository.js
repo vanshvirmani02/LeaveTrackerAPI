@@ -23,7 +23,7 @@ class AdminSettingsRepository {
 
   async updateById(id, updateData) {
     return AdminSettings.findByIdAndUpdate(id, updateData, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     });
   }

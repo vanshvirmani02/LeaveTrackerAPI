@@ -25,7 +25,7 @@ class SessionRepository {
         isRevoked: true,
         expiredAt: new Date(),
       },
-      { new: true },
+      { returnDocument: "after" },
     );
   }
 }

@@ -25,7 +25,7 @@ class LeaveTypeRepository {
 
   async updateById(id, updateData) {
     return LeaveType.findByIdAndUpdate(id, updateData, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     });
   }

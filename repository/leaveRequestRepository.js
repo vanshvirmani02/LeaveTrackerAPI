@@ -202,13 +202,13 @@ class LeaveRequestRepository {
     return LeaveRequest.findByIdAndUpdate(
       id,
       { status },
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     ).populate("leaveType");
   }
 
   async updateByIdAndEmployeeId(id, employeeId, updateData) {
     return LeaveRequest.findOneAndUpdate({ _id: id, employeeId }, updateData, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     }).populate("leaveType");
   }

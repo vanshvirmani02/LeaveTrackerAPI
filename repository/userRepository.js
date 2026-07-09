@@ -134,7 +134,7 @@ class UserRepository {
 
   async updateById(id, updateData) {
     return User.findByIdAndUpdate(id, updateData, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     }).select("-password");
   }

@@ -31,7 +31,7 @@ class LeaveBalanceRepository {
         $inc: { consumedLeaves: leaveDays },
         $setOnInsert: { employeeId, leaveTypeId },
       },
-      { upsert: true, new: true, runValidators: true },
+      { upsert: true, returnDocument: "after", runValidators: true },
     );
   }
 

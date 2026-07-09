@@ -40,7 +40,7 @@ class HolidayRepository {
 
   async updateById(id, updateData) {
     return Holiday.findByIdAndUpdate(id, updateData, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     });
   }

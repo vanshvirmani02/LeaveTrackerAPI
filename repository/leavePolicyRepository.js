@@ -21,7 +21,7 @@ class LeavePolicyRepository {
 
   async updateById(id, updateData) {
     return LeavePolicy.findByIdAndUpdate(id, updateData, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     });
   }
