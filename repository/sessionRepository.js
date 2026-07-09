@@ -17,6 +17,17 @@ class SessionRepository {
 
     return Session.findOne(query);
   }
+
+  async revokeSessionById(sessionId) {
+    return Session.findByIdAndUpdate(
+      sessionId,
+      {
+        isRevoked: true,
+        expiredAt: new Date(),
+      },
+      { new: true },
+    );
+  }
 }
 
 export default new SessionRepository();

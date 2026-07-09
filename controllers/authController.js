@@ -1,5 +1,6 @@
 import asyncHandler from "../middleware/asyncHandler.js";
 import userRepository from "../repository/userRepository.js";
+import sessionRepository from "../repository/sessionRepository.js";
 import { isAllowedOrigin } from "../utils/commonFunctions.js";
 import { USER_STATUS, ROLES } from "../config/constants.js";
 import {
@@ -9,6 +10,7 @@ import {
   generateSessionId,
   generateToken,
   generateRefreshToken,
+  verifyRefreshToken,
   getClientContext,
 } from "../utils/authUtils.js";
 
@@ -23,16 +25,19 @@ const generateAndReturnTokens = async ({
   deviceId,
   ipAddress,
   userData,
+  existingSessionId,
 }) => {
-  const sessionId = await generateSessionId({
-    userId: userData.id,
-    deviceType,
-    deviceId,
-    ipAddress,
-  });
+  const sessionId =
+    existingSessionId ??
+    (await generateSessionId({
+      userId: userData.id,
+      deviceType,
+      deviceId,
+      ipAddress,
+    }));
 
   const accessToken = generateToken(userData, sessionId.toString());
-  const refreshToken = generateRefreshToken(userData);
+  const refreshToken = generateRefreshToken(userData, sessionId.toString());
 
   return { accessToken, refreshToken };
 };
@@ -220,5 +225,94 @@ export const getUserProfile = asyncHandler(async (req, res) => {
       ...rest,
       id: _id?.toString(),
     },
+  });
+});
+
+export const refreshToken = asyncHandler(async (req, res) => {
+  const { refreshToken: token } = req.body;
+  const { deviceType, deviceId } = getClientContext(req);
+  const ipAddress = getClientIpAddress(req);
+
+  const decoded = verifyRefreshToken(token);
+  const { id, sessionId } = decoded;
+
+  if (!id || !sessionId) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid refresh token payload.",
+    });
+  }
+
+  const session = await sessionRepository.findValidSession({
+    sessionId,
+    userId: id,
+    deviceType,
+    deviceId,
+  });
+
+  if (!session) {
+    return res.status(401).json({
+      success: false,
+      message: "Session expired.",
+    });
+  }
+
+  const user = await userRepository.findById(id);
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found.",
+    });
+  }
+
+  if (user.status === USER_STATUS.INACTIVE) {
+    return res.status(400).json({
+      success: false,
+      message: "User is inactive.",
+    });
+  }
+
+  const isManager = await userRepository.isManagerOfAnyUser(user._id);
+  const userData = {
+    id: user._id.toString(),
+    employeeId: user.employeeId,
+    name: user.name,
+    email: user.email,
+    joiningDate: user.joiningDate.toISOString(),
+    role: user.role,
+    isManager,
+  };
+
+  const { accessToken, refreshToken: nextRefreshToken } =
+    await generateAndReturnTokens({
+      deviceType,
+      deviceId,
+      ipAddress,
+      userData,
+      existingSessionId: session._id,
+    });
+
+  return res.status(200).json({
+    success: true,
+    accessToken,
+    refreshToken: nextRefreshToken,
+  });
+});
+
+export const signoutUser = asyncHandler(async (req, res) => {
+  const sessionId = req.user?.sessionId;
+
+  if (!sessionId) {
+    return res.status(400).json({
+      success: false,
+      message: "Session context is missing.",
+    });
+  }
+
+  await sessionRepository.revokeSessionById(sessionId);
+
+  return res.status(200).json({
+    success: true,
+    message: "Signed out successfully.",
   });
 });

@@ -134,13 +134,22 @@ export const verifyToken = (token) => {
   }
 };
 
-export const generateRefreshToken = (userData) => {
+export const generateRefreshToken = (userData, sessionId) => {
     const payload = {
       ...userData,
+      sessionId,
       iat: Math.floor(Date.now() / 1000),
     };
     const token = jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: "7d" });
     return token;
+};
+
+export const verifyRefreshToken = (token) => {
+  try {
+    return jwt.verify(token, JWT_REFRESH_SECRET);
+  } catch {
+    throw new Error("Invalid or expired refresh token");
+  }
 };
 
 export const getClientContext = (req) => {

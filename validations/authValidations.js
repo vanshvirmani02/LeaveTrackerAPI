@@ -83,3 +83,20 @@ export const loginUserValidation = [
       return true;
     }),
 ];
+
+export const refreshTokenValidation = [
+  body("refreshToken")
+    .notEmpty()
+    .withMessage("Refresh token is required.")
+    .isString()
+    .withMessage("Refresh token must be a string."),
+
+  header("x-device-id")
+    .custom((deviceId, { req }) => {
+      const appId = req.headers["x-app-id"];
+      if (appId && !deviceId) {
+        throw new Error("deviceId is required for mobile.");
+      }
+      return true;
+    }),
+];
