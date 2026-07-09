@@ -60,6 +60,42 @@ const validateDateRange = (startDate, endDate) => {
   return { valid: true };
 };
 
+const getEmployeeLeaveAvailability = async ({
+  employeeId,
+  leaveTypeId,
+  leaveTypeDoc,
+  referenceDate,
+}) => {
+  const employee = await userRepository.findByEmployeeId(employeeId);
+  if (!employee) {
+    return null;
+  }
+
+  const existingLeaveBalance =
+    await leaveBalanceRepository.findByEmployeeIdAndLeaveTypeId(
+      employeeId,
+      leaveTypeId,
+    );
+
+  const allocatedLeaves =
+    existingLeaveBalance?.allocatedLeaves ??
+    calculateAllocatedLeaves({
+      annualQuota: leaveTypeDoc.annualQuota,
+      accrualType: leaveTypeDoc.accrualType,
+      joiningDate: employee.joiningDate,
+      referenceDate,
+    });
+
+  const consumedLeaves = existingLeaveBalance?.consumedLeaves ?? 0;
+  const availableLeaves = Math.max(allocatedLeaves - consumedLeaves, 0);
+
+  return {
+    allocatedLeaves,
+    consumedLeaves,
+    availableLeaves,
+  };
+};
+
 export const createLeaveRequest = asyncHandler(async (req, res) => {
   const { leaveType, startDate, endDate, halfDay, reason, attachmentDoc } =
     req.body;
@@ -88,34 +124,26 @@ export const createLeaveRequest = asyncHandler(async (req, res) => {
     });
   }
 
-  const employee = await userRepository.findByEmployeeId(employeeId);
-  if (!employee) {
+  const leaveAvailability = await getEmployeeLeaveAvailability({
+    employeeId,
+    leaveTypeId: leaveType,
+    leaveTypeDoc: leaveTypeValidation.leaveType,
+    referenceDate: startDate,
+  });
+
+  if (!leaveAvailability) {
     return res.status(404).json({
       success: false,
       message: "Employee not found.",
     });
   }
 
-  const allocatedLeaves = calculateAllocatedLeaves({
-    annualQuota: leaveTypeValidation.leaveType.annualQuota,
-    accrualType: leaveTypeValidation.leaveType.accrualType,
-    joiningDate: employee.joiningDate,
-    referenceDate: startDate,
-  });
-
-  const existingLeaveBalance =
-    await leaveBalanceRepository.findByEmployeeIdAndLeaveTypeId(
-      employeeId,
-      leaveType,
-    );
-
-  const consumedLeaves = existingLeaveBalance?.consumedLeaves ?? 0;
-  const availableLeaves = allocatedLeaves - consumedLeaves;
+  const { allocatedLeaves, consumedLeaves, availableLeaves } = leaveAvailability;
 
   if (availableLeaves <= 0) {
     return res.status(400).json({
       success: false,
-      message: "No leave left for this leave type.",
+      message: "All leaves consumed.",
       leaveBalance: {
         allocatedLeaves,
         consumedLeaves,
