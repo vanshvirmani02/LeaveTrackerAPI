@@ -1,4 +1,5 @@
 import User from "../models/userModel.js";
+import { ROLES, USER_STATUS } from "../config/constants.js";
 
 class UserRepository {
   async findByEmail(email) {
@@ -52,6 +53,20 @@ class UserRepository {
     return User.find({ managerId })
       .select("employeeId name")
       .sort({ name: 1 });
+  }
+
+  async countEmployees({ managerId, status } = {}) {
+    const filter = { role: ROLES.EMPLOYEE };
+
+    if (managerId) {
+      filter.managerId = managerId;
+    }
+
+    if (status) {
+      filter.status = status;
+    }
+
+    return User.countDocuments(filter);
   }
 
   async findEmployeeIdsByName(employeeName) {

@@ -59,6 +59,7 @@ import { authHandler } from "../middleware/authHandler.js";
 import { adminHandler } from "../middleware/adminHandler.js";
 import { getAllLeaveRequests } from "../controllers/leaveRequestController.js";
 import { getLeaveBalances } from "../controllers/leaveBalanceController.js";
+import { getAdminDashboard } from "../controllers/dashboardController.js";
 const router = express.Router();
 
 router.use(authHandler, adminHandler);
@@ -177,5 +178,6 @@ router.put(
   validateReq,
   actionLeaveRequest,
 );
+router.get("/dashboard", getAdminDashboard);
 
 export default router;

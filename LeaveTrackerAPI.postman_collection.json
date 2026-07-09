@@ -1075,12 +1075,72 @@
             "description": "Admin can fetch leave balances for all employees, or filter by employeeId."
           },
           "response": []
+        },
+        {
+          "name": "Get Admin Dashboard",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "dashboard"
+              ]
+            },
+            "description": "Returns total employees, active employees, employees on leave today, pending request count, consumed leaves per employee, and monthly applied/approved leave counts for the current year."
+          },
+          "response": []
         }
       ]
     },
     {
       "name": "Employee (Auth Required)",
       "item": [
+        {
+          "name": "Get Employee Dashboard",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employee",
+                "dashboard"
+              ]
+            },
+            "description": "Returns available leave count, pending/approved request counts, upcoming holidays count with holiday list, and leave type breakdown for the authenticated employee."
+          },
+          "response": []
+        },
         {
           "name": "Create Leave Request",
           "request": {
@@ -1594,6 +1654,37 @@
               ]
             },
             "description": "Returns leave balances for the logged-in manager's team members only. Same response shape as admin leave-balances."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Manager Dashboard",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/employee/manager/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employee",
+                "manager",
+                "dashboard"
+              ]
+            },
+            "description": "Returns total team members, pending requests, team members on leave today, and upcoming week leave count."
           },
           "response": []
         }

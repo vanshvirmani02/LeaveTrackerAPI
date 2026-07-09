@@ -29,12 +29,17 @@ import { authHandler } from "../middleware/authHandler.js";
 import { employeeHandler } from "../middleware/employeeHandler.js";
 import { teamScopeHandler } from "../middleware/teamScopeHandler.js";
 import { getAllLeaveTypes } from "../controllers/leaveTypeController.js";
+import {
+  getEmployeeDashboard,
+  getManagerDashboard,
+} from "../controllers/dashboardController.js";
 const router = express.Router();
 
 
 
 router.use(authHandler, employeeHandler);
 
+router.get("/dashboard", getEmployeeDashboard);
 router.post(
   "/leave-requests",
   addLeaveRequestValidation,
@@ -92,4 +97,5 @@ router.get(
   validateReq,
   getLeaveBalances,
 );
+router.get("/manager/dashboard", teamScopeHandler, getManagerDashboard);
 export default router;

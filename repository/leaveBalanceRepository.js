@@ -34,6 +34,18 @@ class LeaveBalanceRepository {
       { upsert: true, new: true, runValidators: true },
     );
   }
+
+  async getTotalConsumedLeavesByEmployee() {
+    return LeaveBalance.aggregate([
+      {
+        $group: {
+          _id: "$employeeId",
+          totalConsumedLeaves: { $sum: "$consumedLeaves" },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+  }
 }
 
 export default new LeaveBalanceRepository();

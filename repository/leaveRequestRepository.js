@@ -1,6 +1,5 @@
 import LeaveRequest from "../models/leaveRequestModel.js";
 import { LEAVE_REQUEST_STATUS } from "../config/constants.js";
-
 class LeaveRequestRepository {
   async createLeaveRequest(leaveRequestData) {
     return LeaveRequest.create(leaveRequestData);
@@ -112,6 +111,77 @@ class LeaveRequestRepository {
     return LeaveRequest.find(filter)
       .populate("leaveType")
       .sort({ createdAt: sortDirection });
+  }
+
+  buildEmployeeIdFilter(employeeIds) {
+    if (!employeeIds?.length) {
+      return {};
+    }
+
+    return {
+      employeeId:
+        employeeIds.length === 1 ? employeeIds[0] : { $in: employeeIds },
+    };
+  }
+
+  async countByStatus({ status, employeeIds } = {}) {
+    const filter = {};
+
+    if (status) {
+      filter.status = status;
+    }
+
+    Object.assign(filter, this.buildEmployeeIdFilter(employeeIds));
+
+    return LeaveRequest.countDocuments(filter);
+  }
+
+  async findApprovedOverlappingRange(employeeIds, rangeStart, rangeEnd) {
+    const filter = {
+      status: LEAVE_REQUEST_STATUS.APPROVED,
+      startDate: { $lte: rangeEnd },
+      endDate: { $gte: rangeStart },
+      ...this.buildEmployeeIdFilter(employeeIds),
+    };
+
+    return LeaveRequest.find(filter)
+      .populate("leaveType")
+      .sort({ startDate: 1 });
+  }
+
+  async countDistinctEmployeesOnLeave(employeeIds, rangeStart, rangeEnd) {
+    const filter = {
+      status: LEAVE_REQUEST_STATUS.APPROVED,
+      startDate: { $lte: rangeEnd },
+      endDate: { $gte: rangeStart },
+      ...this.buildEmployeeIdFilter(employeeIds),
+    };
+
+    const distinctEmployeeIds = await LeaveRequest.distinct("employeeId", filter);
+    return distinctEmployeeIds.length;
+  }
+
+  async getMonthlyLeaveRequestCounts(year = new Date().getUTCFullYear()) {
+    const yearStart = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0));
+    const yearEnd = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999));
+
+    const [appliedByMonth, approvedByMonth] = await Promise.all([
+      LeaveRequest.aggregate([
+        { $match: { createdAt: { $gte: yearStart, $lte: yearEnd } } },
+        { $group: { _id: { $month: "$createdAt" }, count: { $sum: 1 } } },
+      ]),
+      LeaveRequest.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: yearStart, $lte: yearEnd },
+            status: LEAVE_REQUEST_STATUS.APPROVED,
+          },
+        },
+        { $group: { _id: { $month: "$createdAt" }, count: { $sum: 1 } } },
+      ]),
+    ]);
+
+    return { appliedByMonth, approvedByMonth, year };
   }
 
   async findByIdAndEmployeeId(id, employeeId, { status, leaveType } = {}) {
