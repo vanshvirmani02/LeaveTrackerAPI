@@ -1456,7 +1456,8 @@
                 "employee",
                 "getAllLeaveTypes"
               ]
-            }
+            },
+            "description": "Returns all leave types plus leaveBalance for the authenticated employee with leaveTypeName, allocatedLeaves, and consumedLeaves per active leave type."
           },
           "response": []
         },

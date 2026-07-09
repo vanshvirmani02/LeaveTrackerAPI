@@ -1,5 +1,9 @@
 import asyncHandler from "../middleware/asyncHandler.js";
 import leaveTypeRepository from "../repository/leaveTypeRepository.js";
+import leaveBalanceRepository from "../repository/leaveBalanceRepository.js";
+import userRepository from "../repository/userRepository.js";
+import { LEAVE_TYPE_STATUS, ROLES } from "../config/constants.js";
+import { calculateAllocatedLeaves } from "../utils/leaveAllocationUtils.js";
 
 const formatLeaveType = (leaveType) => {
   const doc = leaveType.toObject ? leaveType.toObject() : { ...leaveType };
@@ -8,6 +12,45 @@ const formatLeaveType = (leaveType) => {
     ...rest,
     id: _id?.toString(),
   };
+};
+
+const buildEmployeeLeaveBalance = async (employeeId) => {
+  const employee = await userRepository.findByEmployeeId(employeeId);
+  if (!employee) {
+    return [];
+  }
+
+  const [leaveBalances, allLeaveTypes] = await Promise.all([
+    leaveBalanceRepository.findByEmployeeIds([employeeId]),
+    leaveTypeRepository.findAll(),
+  ]);
+
+  const balanceByLeaveTypeId = new Map(
+    leaveBalances.map((balance) => {
+      const leaveTypeId =
+        balance.leaveTypeId?._id?.toString() ?? balance.leaveTypeId?.toString();
+      return [leaveTypeId, balance];
+    }),
+  );
+
+  return allLeaveTypes
+    .filter((leaveType) => leaveType.status === LEAVE_TYPE_STATUS.ACTIVE)
+    .map((leaveType) => {
+      const leaveTypeId = leaveType._id.toString();
+      const balance = balanceByLeaveTypeId.get(leaveTypeId);
+
+      return {
+        leaveTypeName: leaveType.leaveName,
+        allocatedLeaves:
+          balance?.allocatedLeaves ??
+          calculateAllocatedLeaves({
+            annualQuota: leaveType.annualQuota,
+            accrualType: leaveType.accrualType,
+            joiningDate: employee.joiningDate,
+          }),
+        consumedLeaves: balance?.consumedLeaves ?? 0,
+      };
+    });
 };
 
 export const addLeaveType = asyncHandler(async (req, res) => {
@@ -58,19 +101,31 @@ export const getAllLeaveTypes = asyncHandler(async (req, res) => {
   const leaveTypes = await leaveTypeRepository.findAll();
 
   if (leaveTypes.length === 0) {
-    return res.status(200).json({
+    const response = {
       success: true,
       count: 0,
       message: "No leave types found.",
       leaveTypes: [],
-    });
+    };
+
+    if (req.user?.role === ROLES.EMPLOYEE && req.user?.employeeId) {
+      response.leaveBalance = [];
+    }
+
+    return res.status(200).json(response);
   }
 
-  res.status(200).json({
+  const response = {
     success: true,
     count: leaveTypes.length,
     leaveTypes: leaveTypes.map(formatLeaveType),
-  });
+  };
+
+  if (req.user?.role === ROLES.EMPLOYEE && req.user?.employeeId) {
+    response.leaveBalance = await buildEmployeeLeaveBalance(req.user.employeeId);
+  }
+
+  res.status(200).json(response);
 });
 
 export const updateLeaveTypeById = asyncHandler(async (req, res) => {
