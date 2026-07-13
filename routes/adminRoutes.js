@@ -25,6 +25,9 @@ import {
   getAllHolidays,
   updateHolidayById,
   deleteHolidayById,
+  downloadHolidaysCsv,
+  downloadHolidaysExcel,
+  uploadHolidays,
 } from "../controllers/holidayController.js";
 import {
   addAdminSettings,
@@ -57,9 +60,24 @@ import {
 } from "../validations/index.js";
 import { authHandler } from "../middleware/authHandler.js";
 import { adminHandler } from "../middleware/adminHandler.js";
+import { holidayFileUpload } from "../middleware/holidayUploadHandler.js";
 import { getAllLeaveRequests } from "../controllers/leaveRequestController.js";
 import { getLeaveBalances } from "../controllers/leaveBalanceController.js";
 import { getAdminDashboard } from "../controllers/dashboardController.js";
+
+const uploadHolidayFile = (req, res, next) => {
+  holidayFileUpload(req, res, (error) => {
+    if (!error) {
+      return next();
+    }
+
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Failed to upload holiday file.",
+    });
+  });
+};
+
 const router = express.Router();
 
 router.use(authHandler, adminHandler);
@@ -123,6 +141,9 @@ router.delete(
 
 router.post("/holidays", addHolidayValidation, validateReq, addHoliday);
 router.get("/holidays", getAllHolidays);
+router.get("/holidays/export/csv", downloadHolidaysCsv);
+router.get("/holidays/export/excel", downloadHolidaysExcel);
+router.post("/holidays/import", uploadHolidayFile, uploadHolidays);
 router.put(
   "/holidays/:id",
   updateHolidayValidation,

@@ -1,9 +1,14 @@
 import { body, param, query } from "express-validator";
 import mongoose from "mongoose";
-import { LEAVE_REQUEST_STATUS, LEAVE_REQUEST_ACTION } from "../config/constants.js";
+import {
+  HALF_DAY_PERIODS,
+  LEAVE_REQUEST_STATUS,
+  LEAVE_REQUEST_ACTION,
+} from "../config/constants.js";
 
 const leaveRequestStatusValues = Object.values(LEAVE_REQUEST_STATUS);
 const leaveRequestActionValues = Object.values(LEAVE_REQUEST_ACTION);
+const halfDayPeriodValues = Object.values(HALF_DAY_PERIODS);
 
 const mongoIdValidator = (value) => {
   if (!mongoose.Types.ObjectId.isValid(value)) {
@@ -11,6 +16,37 @@ const mongoIdValidator = (value) => {
   }
   return true;
 };
+
+const halfDayPeriodValidation = () =>
+  body("halfDayPeriod")
+    .optional({ nullable: true })
+    .custom((value, { req }) => {
+      const isHalfDay = req.body.halfDay === true || req.body.halfDay === "true";
+
+      if (isHalfDay) {
+        if (!value) {
+          throw new Error(
+            "Half day period is required when half day leave is selected.",
+          );
+        }
+        if (!halfDayPeriodValues.includes(value)) {
+          throw new Error(
+            `Half day period must be one of: ${halfDayPeriodValues.join(", ")}.`,
+          );
+        }
+        return true;
+      }
+
+      if (value !== undefined && value !== null && value !== "") {
+        if (!halfDayPeriodValues.includes(value)) {
+          throw new Error(
+            `Half day period must be one of: ${halfDayPeriodValues.join(", ")}.`,
+          );
+        }
+      }
+
+      return true;
+    });
 
 export const addLeaveRequestValidation = [
   body("leaveType")
@@ -43,6 +79,24 @@ export const addLeaveRequestValidation = [
     .optional()
     .isBoolean()
     .withMessage("Half day must be a boolean value."),
+
+  halfDayPeriodValidation(),
+
+  body("emergencyContactNo")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage("Emergency contact number cannot be empty.")
+    .isLength({ max: 20 })
+    .withMessage("Emergency contact number must not exceed 20 characters."),
+
+  body("location")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage("Location cannot be empty.")
+    .isLength({ max: 200 })
+    .withMessage("Location must not exceed 200 characters."),
 
   body("reason")
     .optional()
@@ -160,6 +214,24 @@ export const updateLeaveRequestValidation = [
     .optional()
     .isBoolean()
     .withMessage("Half day must be a boolean value."),
+
+  halfDayPeriodValidation(),
+
+  body("emergencyContactNo")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage("Emergency contact number cannot be empty.")
+    .isLength({ max: 20 })
+    .withMessage("Emergency contact number must not exceed 20 characters."),
+
+  body("location")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage("Location cannot be empty.")
+    .isLength({ max: 200 })
+    .withMessage("Location must not exceed 200 characters."),
 
   body("reason")
     .optional()

@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { ROLES, USER_STATUS } from "../config/constants.js";
+import { EMPLOYMENT_TYPES, ROLES, USER_STATUS } from "../config/constants.js";
 import { generateEmployeeId } from "../utils/generateEmployeeId.js";
 
 const userSchema = new mongoose.Schema(
@@ -35,6 +35,22 @@ const userSchema = new mongoose.Schema(
     },
     designation: {
       type: String,
+    },
+    department: {
+      type: String,
+      trim: true,
+    },
+    yearsOfExperience: {
+      type: Number,
+      min: 0,
+    },
+    employmentType: {
+      type: String,
+      enum: Object.values(EMPLOYMENT_TYPES),
+    },
+    workLocation: {
+      type: String,
+      trim: true,
     },
     role: {
       type: String,

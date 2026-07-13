@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { LEAVE_REQUEST_STATUS } from "../config/constants.js";
+import { HALF_DAY_PERIODS, LEAVE_REQUEST_STATUS } from "../config/constants.js";
 
 const leaveRequestSchema = new mongoose.Schema(
   {
@@ -24,6 +24,22 @@ const leaveRequestSchema = new mongoose.Schema(
     halfDay: {
       type: Boolean,
       default: false,
+    },
+    halfDayPeriod: {
+      type: String,
+      enum: [...Object.values(HALF_DAY_PERIODS), null],
+      required: function () {
+        return this.halfDay === true;
+      },
+      default: null,
+    },
+    emergencyContactNo: {
+      type: String,
+      trim: true,
+    },
+    location: {
+      type: String,
+      trim: true,
     },
     status: {
       type: String,

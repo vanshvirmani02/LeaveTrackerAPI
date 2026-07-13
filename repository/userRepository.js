@@ -39,6 +39,13 @@ class UserRepository {
       .populate("managerId", "name employeeId");
   }
 
+  async findActiveAdmins() {
+    return User.find({
+      role: ROLES.ADMIN,
+      status: USER_STATUS.ACTIVE,
+    }).select("name email");
+  }
+
   async findByEmployeeIds(employeeIds) {
     if (!employeeIds.length) {
       return [];

@@ -1,19 +1,15 @@
 import asyncHandler from "../middleware/asyncHandler.js";
 import userRepository from "../repository/userRepository.js";
 import leaveRequestRepository from "../repository/leaveRequestRepository.js";
-import leaveTypeRepository from "../repository/leaveTypeRepository.js";
-import leaveBalanceRepository from "../repository/leaveBalanceRepository.js";
-import holidayRepository from "../repository/holidayRepository.js";
+import salaryRepository from "../repository/salaryRepository.js";
+import bankDetailsRepository from "../repository/bankDetailsRepository.js";
+import skillsRepository from "../repository/skillsRepository.js";
 import { formatLeaveRequest } from "./leaveRequestController.js";
+import { processLeaveRequestAction } from "../utils/leaveRequestActionService.js";
 import {
-  calculateAllocatedLeaves,
-  calculateLeaveDays,
-} from "../utils/leaveAllocationUtils.js";
-import {
+  PAYROLL_TYPES,
   ROLES,
   USER_STATUS,
-  LEAVE_REQUEST_STATUS,
-  LEAVE_REQUEST_ACTION,
 } from "../config/constants.js";
 import { encryptPasswordForStorage, decrypt } from "../utils/authUtils.js";
 
@@ -42,6 +38,19 @@ const formatEmployee = (user) => {
   };
 };
 
+const formatSalary = (salary) => {
+  if (!salary) {
+    return null;
+  }
+
+  const doc = salary.toObject ? salary.toObject() : { ...salary };
+  const { _id, ...rest } = doc;
+  return {
+    ...rest,
+    id: _id?.toString(),
+  };
+};
+
 const formatLeaveBalance = (leaveBalance) => {
   const doc = leaveBalance.toObject ? leaveBalance.toObject() : { ...leaveBalance };
   const { _id, leaveTypeId, ...rest } = doc;
@@ -53,17 +62,17 @@ const formatLeaveBalance = (leaveBalance) => {
   };
 };
 
-const getLeaveTypeId = (leaveType) => {
-  if (!leaveType) {
-    return null;
-  }
-
-  if (typeof leaveType === "object") {
-    return leaveType._id?.toString() ?? leaveType.id?.toString();
-  }
-
-  return leaveType.toString();
-};
+const buildSalaryPayload = (employeeId, salary) => ({
+  employeeId,
+  ctc: salary.ctc,
+  basicSalary: salary.basicSalary,
+  hra: salary.hra,
+  specialAllowance: salary.specialAllowance,
+  pf: salary.pf,
+  professionalTax: salary.professionalTax,
+  salaryEffectiveDate: salary.salaryEffectiveDate,
+  payrollType: salary.payrollType || PAYROLL_TYPES.MONTHLY,
+});
 
 export const addEmployee = asyncHandler(async (req, res) => {
   const {
@@ -73,7 +82,12 @@ export const addEmployee = asyncHandler(async (req, res) => {
     contactNo,
     joiningDate,
     designation,
+    department,
+    yearsOfExperience,
+    employmentType,
+    workLocation,
     managerId,
+    salary,
   } = req.body;
   const isAdmin = req.user.role === ROLES.ADMIN;
   if (!isAdmin) {
@@ -108,15 +122,24 @@ export const addEmployee = asyncHandler(async (req, res) => {
     contactNo,
     joiningDate,
     designation,
+    department,
+    yearsOfExperience,
+    employmentType,
+    workLocation,
     managerId: managerId || null,
     role: ROLES.EMPLOYEE,
     status: USER_STATUS.ACTIVE,
   });
 
+  const createdSalary = await salaryRepository.createSalary(
+    buildSalaryPayload(employee.employeeId, salary),
+  );
+
   res.status(201).json({
     success: true,
     message: "Employee added successfully.",
     employee: formatEmployee(employee),
+    salary: formatSalary(createdSalary),
   });
 });
 
@@ -145,17 +168,42 @@ export const getAllEmployees = asyncHandler(async (req, res) => {
     });
   }
 
+  const employeeIds = employees
+    .map((employee) => employee.employeeId)
+    .filter(Boolean);
+  const salaries =
+    await salaryRepository.findLatestByEmployeeIds(employeeIds);
+  const salaryMap = salaries.reduce((map, salary) => {
+    map.set(salary.employeeId, formatSalary(salary));
+    return map;
+  }, new Map());
+
   res.status(200).json({
     success: true,
     count: employees.length,
-    employees: employees.map(formatEmployee),
+    employees: employees.map((employee) => ({
+      ...formatEmployee(employee),
+      salary: salaryMap.get(employee.employeeId) ?? null,
+    })),
   });
 });
 
 export const updateEmployeeById = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, email, password, contactNo, joiningDate, designation, managerId } =
-    req.body;
+  const {
+    name,
+    email,
+    password,
+    contactNo,
+    joiningDate,
+    designation,
+    department,
+    yearsOfExperience,
+    employmentType,
+    workLocation,
+    managerId,
+    salary,
+  } = req.body;
 
   const isAdmin = req.user.role === ROLES.ADMIN;
   if (!isAdmin) {
@@ -199,6 +247,12 @@ export const updateEmployeeById = asyncHandler(async (req, res) => {
   if (contactNo !== undefined) updateData.contactNo = contactNo;
   if (joiningDate !== undefined) updateData.joiningDate = joiningDate;
   if (designation !== undefined) updateData.designation = designation;
+  if (department !== undefined) updateData.department = department;
+  if (yearsOfExperience !== undefined) {
+    updateData.yearsOfExperience = yearsOfExperience;
+  }
+  if (employmentType !== undefined) updateData.employmentType = employmentType;
+  if (workLocation !== undefined) updateData.workLocation = workLocation;
   if (managerId !== undefined) updateData.managerId = managerId || null;
   if (password) {
     updateData.password = await encryptPasswordForStorage(decrypt(password));
@@ -206,10 +260,23 @@ export const updateEmployeeById = asyncHandler(async (req, res) => {
 
   const updatedEmployee = await userRepository.updateById(id, updateData);
 
+  let updatedSalary = null;
+  if (salary) {
+    updatedSalary = await salaryRepository.upsertLatestByEmployeeId(
+      updatedEmployee.employeeId,
+      buildSalaryPayload(updatedEmployee.employeeId, salary),
+    );
+  } else {
+    updatedSalary = await salaryRepository.findLatestByEmployeeId(
+      updatedEmployee.employeeId,
+    );
+  }
+
   res.status(200).json({
     success: true,
     message: "Employee updated successfully.",
     employee: formatEmployee(updatedEmployee),
+    salary: formatSalary(updatedSalary),
   });
 });
 
@@ -232,7 +299,20 @@ export const deleteEmployeeById = asyncHandler(async (req, res) => {
     });
   }
 
-  await userRepository.deleteById(id);
+  const employeeId = existingEmployee.employeeId;
+
+  await Promise.all([
+    userRepository.deleteById(id),
+    employeeId
+      ? salaryRepository.deleteByEmployeeId(employeeId)
+      : Promise.resolve(),
+    employeeId
+      ? bankDetailsRepository.deleteByEmployeeId(employeeId)
+      : Promise.resolve(),
+    employeeId
+      ? skillsRepository.deleteByEmployeeId(employeeId)
+      : Promise.resolve(),
+  ]);
 
   res.status(200).json({
     success: true,
@@ -295,120 +375,27 @@ export const actionLeaveRequest = asyncHandler(async (req, res) => {
     }
   }
 
-  if (leaveRequest.status !== LEAVE_REQUEST_STATUS.PENDING) {
-    return res.status(400).json({
-      success: false,
-      message: "Only pending leave requests can be approved or rejected.",
-    });
-  }
-
-  if (leaveRequest.employeeId !== employeeId) {
-    return res.status(400).json({
-      success: false,
-      message: "Employee ID does not match the leave request.",
-    });
-  }
-
-  if (getLeaveTypeId(leaveRequest.leaveType) !== leaveType) {
-    return res.status(400).json({
-      success: false,
-      message: "Leave type does not match the leave request.",
-    });
-  }
-
-  if (action === LEAVE_REQUEST_ACTION.REJECT) {
-    const updatedLeaveRequest = await leaveRequestRepository.updateStatusById(
-      id,
-      LEAVE_REQUEST_STATUS.REJECTED,
-    );
-
-    return res.status(200).json({
-      success: true,
-      message: "Leave request rejected successfully.",
-      leaveRequest: formatLeaveRequest(updatedLeaveRequest),
-    });
-  }
-
-  const leaveTypeDoc = await leaveTypeRepository.findById(leaveType);
-  if (!leaveTypeDoc) {
-    return res.status(404).json({
-      success: false,
-      message: "Leave type not found.",
-    });
-  }
-
-  const employee = await userRepository.findByEmployeeId(employeeId);
-  if (!employee) {
-    return res.status(404).json({
-      success: false,
-      message: "Employee not found.",
-    });
-  }
-
-  const holidays = await holidayRepository.findBetweenDates(
-    leaveRequest.startDate,
-    leaveRequest.endDate,
-  );
-
-  const leaveDays = calculateLeaveDays({
-    startDate: leaveRequest.startDate,
-    endDate: leaveRequest.endDate,
-    halfDay: leaveRequest.halfDay,
-    holidays,
-  });
-
-  if (leaveDays <= 0) {
-    return res.status(400).json({
-      success: false,
-      message: "Leave request has no applicable leave days after excluding holidays.",
-    });
-  }
-
-  const allocatedLeaves = calculateAllocatedLeaves({
-    annualQuota: leaveTypeDoc.annualQuota,
-    accrualType: leaveTypeDoc.accrualType,
-    joiningDate: employee.joiningDate,
-    referenceDate: leaveRequest.startDate,
-  });
-
-  const existingLeaveBalance =
-    await leaveBalanceRepository.findByEmployeeIdAndLeaveTypeId(
-      employeeId,
-      leaveType,
-    );
-
-  const currentConsumedLeaves = existingLeaveBalance?.consumedLeaves ?? 0;
-
-  if (currentConsumedLeaves + leaveDays > allocatedLeaves) {
-    return res.status(400).json({
-      success: false,
-      message: "Insufficient leave balance for approval.",
-      leaveBalance: {
-        allocatedLeaves,
-        consumedLeaves: currentConsumedLeaves,
-        requestedLeaveDays: leaveDays,
-        availableLeaves: Math.max(allocatedLeaves - currentConsumedLeaves, 0),
-      },
-    });
-  }
-
-  const updatedLeaveRequest = await leaveRequestRepository.updateStatusById(
-    id,
-    LEAVE_REQUEST_STATUS.APPROVED,
-  );
-
-  const leaveBalance = await leaveBalanceRepository.upsertOnApprove({
+  const result = await processLeaveRequestAction({
+    leaveRequestId: id,
+    action,
     employeeId,
     leaveTypeId: leaveType,
-    allocatedLeaves,
-    leaveDays,
   });
+
+  if (!result.success) {
+    return res.status(result.statusCode).json({
+      success: false,
+      message: result.message,
+      ...(result.leaveBalance ? { leaveBalance: result.leaveBalance } : {}),
+    });
+  }
 
   return res.status(200).json({
     success: true,
-    message: "Leave request approved successfully.",
-    leaveRequest: formatLeaveRequest(updatedLeaveRequest),
-    leaveBalance: formatLeaveBalance(leaveBalance),
+    message: result.message,
+    leaveRequest: formatLeaveRequest(result.leaveRequest),
+    ...(result.leaveBalance
+      ? { leaveBalance: formatLeaveBalance(result.leaveBalance) }
+      : {}),
   });
 });
-

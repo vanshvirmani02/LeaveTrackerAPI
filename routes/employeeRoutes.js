@@ -15,6 +15,18 @@ import {
 import { getAllHolidays, getManagerHolidays } from "../controllers/holidayController.js";
 import { getUserProfile } from "../controllers/authController.js";
 import {
+  addBankDetails,
+  getBankDetails,
+  updateBankDetails,
+  deleteBankDetails,
+} from "../controllers/bankDetailsController.js";
+import {
+  addSkills,
+  getSkills,
+  updateSkills,
+  deleteSkills,
+} from "../controllers/skillsController.js";
+import {
   addLeaveRequestValidation,
   getLeaveRequestsQueryValidation,
   getLeaveRequestByIdQueryValidation,
@@ -23,6 +35,10 @@ import {
   getAllLeaveRequestsQueryValidation,
   actionLeaveRequestValidation,
   getLeaveBalancesQueryValidation,
+  addBankDetailsValidation,
+  updateBankDetailsValidation,
+  addSkillsValidation,
+  updateSkillsValidation,
   validateReq,
 } from "../validations/index.js";
 import { authHandler } from "../middleware/authHandler.js";
@@ -33,9 +49,8 @@ import {
   getEmployeeDashboard,
   getManagerDashboard,
 } from "../controllers/dashboardController.js";
+
 const router = express.Router();
-
-
 
 router.use(authHandler, employeeHandler);
 
@@ -57,6 +72,27 @@ router.get("/holidays", getAllHolidays);
 router.get("/holidays/:employeeId", getAllHolidays);
 router.get("/getAllLeaveTypes", getAllLeaveTypes);
 router.get("/profile", getUserProfile);
+
+router.post(
+  "/bank-details",
+  addBankDetailsValidation,
+  validateReq,
+  addBankDetails,
+);
+router.get("/bank-details", getBankDetails);
+router.put(
+  "/bank-details",
+  updateBankDetailsValidation,
+  validateReq,
+  updateBankDetails,
+);
+router.delete("/bank-details", deleteBankDetails);
+
+router.post("/skills", addSkillsValidation, validateReq, addSkills);
+router.get("/skills", getSkills);
+router.put("/skills", updateSkillsValidation, validateReq, updateSkills);
+router.delete("/skills", deleteSkills);
+
 router.get(
   "/leave-requests/:id",
   getLeaveRequestByIdQueryValidation,
@@ -98,4 +134,5 @@ router.get(
   getLeaveBalances,
 );
 router.get("/manager/dashboard", teamScopeHandler, getManagerDashboard);
+
 export default router;

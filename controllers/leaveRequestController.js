@@ -8,6 +8,7 @@ import {
   calculateAllocatedLeaves,
   calculateLeaveDays,
 } from "../utils/leaveAllocationUtils.js";
+import { notifyAdminsOfLeaveRequest } from "../utils/leaveRequestNotification.js";
 import { LEAVE_TYPE_STATUS, LEAVE_REQUEST_STATUS } from "../config/constants.js";
 
 export const formatLeaveRequest = (leaveRequest, { employeeName, managerName } = {}) => {
@@ -97,8 +98,17 @@ const getEmployeeLeaveAvailability = async ({
 };
 
 export const createLeaveRequest = asyncHandler(async (req, res) => {
-  const { leaveType, startDate, endDate, halfDay, reason, attachmentDoc } =
-    req.body;
+  const {
+    leaveType,
+    startDate,
+    endDate,
+    halfDay,
+    halfDayPeriod,
+    emergencyContactNo,
+    location,
+    reason,
+    attachmentDoc,
+  } = req.body;
   const employeeId = req.user.employeeId;
 
   if (!employeeId) {
@@ -202,6 +212,9 @@ export const createLeaveRequest = asyncHandler(async (req, res) => {
       startDate,
       endDate,
       halfDay: halfDay ?? false,
+      halfDayPeriod: halfDay ? halfDayPeriod : null,
+      emergencyContactNo: emergencyContactNo?.trim(),
+      location: location?.trim(),
       status: LEAVE_REQUEST_STATUS.PENDING,
       reason: reason?.trim(),
       attachmentDoc: attachmentDoc?.trim(),
@@ -222,6 +235,11 @@ export const createLeaveRequest = asyncHandler(async (req, res) => {
       leaveRequest._id,
       employeeId,
     );
+
+  const employee = await userRepository.findByEmployeeId(employeeId);
+  notifyAdminsOfLeaveRequest(populatedLeaveRequest, employee).catch((error) => {
+    console.error("Failed to send leave request notification email:", error);
+  });
 
   res.status(201).json({
     success: true,
@@ -326,8 +344,17 @@ export const getLeaveRequestById = asyncHandler(async (req, res) => {
 
 export const updateLeaveRequestById = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { leaveType, startDate, endDate, halfDay, reason, attachmentDoc } =
-    req.body;
+  const {
+    leaveType,
+    startDate,
+    endDate,
+    halfDay,
+    halfDayPeriod,
+    emergencyContactNo,
+    location,
+    reason,
+    attachmentDoc,
+  } = req.body;
   const employeeId = req.user.employeeId;
 
   if (!employeeId) {
@@ -379,6 +406,17 @@ export const updateLeaveRequestById = asyncHandler(async (req, res) => {
   if (startDate !== undefined) updateData.startDate = startDate;
   if (endDate !== undefined) updateData.endDate = endDate;
   if (halfDay !== undefined) updateData.halfDay = halfDay;
+  if (halfDay !== undefined) {
+    updateData.halfDayPeriod = halfDay ? halfDayPeriod : null;
+  } else if (halfDayPeriod !== undefined) {
+    updateData.halfDayPeriod = existingLeaveRequest.halfDay
+      ? halfDayPeriod
+      : null;
+  }
+  if (emergencyContactNo !== undefined) {
+    updateData.emergencyContactNo = emergencyContactNo?.trim();
+  }
+  if (location !== undefined) updateData.location = location?.trim();
   if (reason !== undefined) updateData.reason = reason?.trim();
   if (attachmentDoc !== undefined) updateData.attachmentDoc = attachmentDoc?.trim();
 

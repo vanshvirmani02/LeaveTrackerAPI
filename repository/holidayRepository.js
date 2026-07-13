@@ -22,6 +22,14 @@ class HolidayRepository {
     return Holiday.create(holidayData);
   }
 
+  async createMany(holidays) {
+    if (!holidays?.length) {
+      return [];
+    }
+
+    return Holiday.insertMany(holidays, { ordered: false });
+  }
+
   async findAll() {
     return Holiday.find().sort({ date: 1 });
   }

@@ -11,6 +11,17 @@ export const USER_STATUS = {
   INACTIVE: "INACTIVE",
 };
 
+export const EMPLOYMENT_TYPES = {
+  FULL_TIME: "FULL_TIME",
+  CONTRACT: "CONTRACT",
+  INTERN: "INTERN",
+};
+
+export const PAYROLL_TYPES = {
+  MONTHLY: "MONTHLY",
+  WEEKLY: "WEEKLY",
+};
+
 export const DEVICE_TYPES = {
   WEB: "web",
   MOBILE: "mobile",
@@ -40,7 +51,18 @@ export const LEAVE_REQUEST_STATUS = {
   REJECTED: "REJECTED",
 };
 
+export const HALF_DAY_PERIODS = {
+  FIRST_HALF: "FIRST_HALF",
+  SECOND_HALF: "SECOND_HALF",
+};
+
 export const LEAVE_REQUEST_ACTION = {
   APPROVE: "APPROVE",
   REJECT: "REJECT",
+};
+
+export const EMAIL_ACTION_TOKEN_STATUS = {
+  PENDING: "PENDING",
+  USED: "USED",
+  EXPIRED: "EXPIRED",
 };

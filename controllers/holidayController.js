@@ -3,7 +3,13 @@ import holidayRepository from "../repository/holidayRepository.js";
 import leaveRequestRepository from "../repository/leaveRequestRepository.js";
 import userRepository from "../repository/userRepository.js";
 import { calculateLeaveDays } from "../utils/leaveAllocationUtils.js";
-import { ROLES } from "../config/constants.js";
+import {
+  buildHolidayKey,
+  buildHolidaysCsvBuffer,
+  buildHolidaysExcelBuffer,
+  formatHolidayDate,
+  parseHolidayUploadFile,
+} from "../utils/holidayFileUtils.js";
 
 const formatHoliday = (holiday) => {
   const doc = holiday.toObject ? holiday.toObject() : { ...holiday };
@@ -153,6 +159,94 @@ export const getManagerHolidays = asyncHandler(async (req, res) => {
         holidays,
       }),
     })),
+  });
+});
+
+export const downloadHolidaysCsv = asyncHandler(async (req, res) => {
+  const holidays = await holidayRepository.findAll();
+  const buffer = buildHolidaysCsvBuffer(holidays);
+
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader(
+    "Content-Disposition",
+    'attachment; filename="holidays.csv"',
+  );
+  return res.status(200).send(buffer);
+});
+
+export const downloadHolidaysExcel = asyncHandler(async (req, res) => {
+  const holidays = await holidayRepository.findAll();
+  const buffer = buildHolidaysExcelBuffer(holidays);
+
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  );
+  res.setHeader(
+    "Content-Disposition",
+    'attachment; filename="holidays.xlsx"',
+  );
+  return res.status(200).send(buffer);
+});
+
+export const uploadHolidays = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({
+      success: false,
+      message: "Holiday file is required. Upload a CSV or Excel file.",
+    });
+  }
+
+  const parsed = parseHolidayUploadFile(req.file.buffer, req.file.originalname);
+  if (!parsed.valid) {
+    return res.status(400).json({
+      success: false,
+      message: parsed.message,
+      ...(parsed.errors ? { errors: parsed.errors } : {}),
+    });
+  }
+
+  const existingHolidays = await holidayRepository.findAll();
+  const existingKeys = new Set(
+    existingHolidays.map((holiday) =>
+      buildHolidayKey(holiday.holidayName, holiday.date),
+    ),
+  );
+
+  const holidaysToCreate = [];
+  const skipped = [];
+
+  for (const holiday of parsed.holidays) {
+    const key = buildHolidayKey(holiday.holidayName, holiday.date);
+    if (existingKeys.has(key)) {
+      skipped.push({
+        holidayName: holiday.holidayName,
+        date: formatHolidayDate(holiday.date),
+        type: holiday.type,
+        reason: "Already exists in the database.",
+      });
+      continue;
+    }
+
+    holidaysToCreate.push(holiday);
+    existingKeys.add(key);
+  }
+
+  const createdHolidays = await holidayRepository.createMany(holidaysToCreate);
+
+  return res.status(201).json({
+    success: true,
+    message:
+      createdHolidays.length > 0
+        ? "Holidays uploaded successfully."
+        : "No new holidays were added. All rows already exist in the database.",
+    summary: {
+      totalRows: parsed.holidays.length,
+      added: createdHolidays.length,
+      skipped: skipped.length,
+    },
+    holidays: createdHolidays.map(formatHoliday),
+    skipped,
   });
 });
 
