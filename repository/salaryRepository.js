@@ -5,10 +5,6 @@ class SalaryRepository {
     return Salary.create(salaryData);
   }
 
-  async findByEmployeeId(employeeId) {
-    return Salary.find({ employeeId }).sort({ salaryEffectiveDate: -1 });
-  }
-
   async findLatestByEmployeeId(employeeId) {
     return Salary.findOne({ employeeId }).sort({ salaryEffectiveDate: -1 });
   }

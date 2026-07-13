@@ -15,12 +15,6 @@ import {
   deleteLeaveTypeById,
 } from "../controllers/leaveTypeController.js";
 import {
-  addLeavePolicy,
-  getAllLeavePolicies,
-  updateLeavePolicyById,
-  deleteLeavePolicyById,
-} from "../controllers/leavePolicyController.js";
-import {
   addHoliday,
   getAllHolidays,
   updateHolidayById,
@@ -44,9 +38,6 @@ import {
   addLeaveTypeValidation,
   updateLeaveTypeValidation,
   leaveTypeIdParamValidation,
-  addLeavePolicyValidation,
-  updateLeavePolicyValidation,
-  leavePolicyIdParamValidation,
   addHolidayValidation,
   updateHolidayValidation,
   holidayIdParamValidation,
@@ -117,26 +108,6 @@ router.delete(
   leaveTypeIdParamValidation,
   validateReq,
   deleteLeaveTypeById,
-);
-
-router.post(
-  "/leave-policies",
-  addLeavePolicyValidation,
-  validateReq,
-  addLeavePolicy,
-);
-router.get("/leave-policies", getAllLeavePolicies);
-router.put(
-  "/leave-policies/:id",
-  updateLeavePolicyValidation,
-  validateReq,
-  updateLeavePolicyById,
-);
-router.delete(
-  "/leave-policies/:id",
-  leavePolicyIdParamValidation,
-  validateReq,
-  deleteLeavePolicyById,
 );
 
 router.post("/holidays", addHolidayValidation, validateReq, addHoliday);

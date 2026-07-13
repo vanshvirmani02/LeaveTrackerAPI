@@ -3,7 +3,6 @@ import { validationResult } from "express-validator";
 export * from "./authValidations.js";
 export * from "./adminValidations.js";
 export * from "./leaveTypeValidations.js";
-export * from "./leavePolicyValidations.js";
 export * from "./holidayValidations.js";
 export * from "./adminSettingsValidations.js";
 export * from "./leaveRequestValidations.js";
