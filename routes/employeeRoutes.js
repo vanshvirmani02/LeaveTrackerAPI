@@ -39,6 +39,7 @@ import {
   updateBankDetailsValidation,
   addSkillsValidation,
   updateSkillsValidation,
+  getHolidaysQueryValidation,
   validateReq,
 } from "../validations/index.js";
 import { authHandler } from "../middleware/authHandler.js";
@@ -68,8 +69,18 @@ router.get(
   getMyLeaveRequests,
 );
 router.get("/leave-balances", getMyLeaveBalances);
-router.get("/holidays", getAllHolidays);
-router.get("/holidays/:employeeId", getAllHolidays);
+router.get(
+  "/holidays",
+  getHolidaysQueryValidation,
+  validateReq,
+  getAllHolidays,
+);
+router.get(
+  "/holidays/:employeeId",
+  getHolidaysQueryValidation,
+  validateReq,
+  getAllHolidays,
+);
 router.get("/getAllLeaveTypes", getAllLeaveTypes);
 router.get("/profile", getUserProfile);
 

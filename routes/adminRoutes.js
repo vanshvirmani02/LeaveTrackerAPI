@@ -41,6 +41,7 @@ import {
   addHolidayValidation,
   updateHolidayValidation,
   holidayIdParamValidation,
+  getHolidaysQueryValidation,
   addAdminSettingsValidation,
   updateAdminSettingsValidation,
   adminSettingsIdParamValidation,
@@ -111,7 +112,12 @@ router.delete(
 );
 
 router.post("/holidays", addHolidayValidation, validateReq, addHoliday);
-router.get("/holidays", getAllHolidays);
+router.get(
+  "/holidays",
+  getHolidaysQueryValidation,
+  validateReq,
+  getAllHolidays,
+);
 router.get("/holidays/export/csv", downloadHolidaysCsv);
 router.get("/holidays/export/excel", downloadHolidaysExcel);
 router.post("/holidays/import", uploadHolidayFile, uploadHolidays);

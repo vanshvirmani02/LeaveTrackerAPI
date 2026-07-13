@@ -49,6 +49,7 @@ export const addHoliday = asyncHandler(async (req, res) => {
 
 export const getAllHolidays = asyncHandler(async (req, res) => {
   const employeeId = req.user?.employeeId ?? req.query.employeeId;
+  const year = req.query.year ? Number(req.query.year) : null;
 
   if (
     employeeId &&
@@ -61,7 +62,9 @@ export const getAllHolidays = asyncHandler(async (req, res) => {
     });
   }
 
-  const holidays = await holidayRepository.findAll();
+  const holidays = year
+    ? await holidayRepository.findByYear(year)
+    : await holidayRepository.findAll();
 
   if (!employeeId) {
     if (holidays.length === 0) {
@@ -80,8 +83,18 @@ export const getAllHolidays = asyncHandler(async (req, res) => {
     });
   }
 
-  const approvedLeaves =
+  let approvedLeaves =
     await leaveRequestRepository.findApprovedByEmployeeId(employeeId);
+
+  if (year) {
+    const yearStart = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0));
+    const yearEnd = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999));
+    approvedLeaves = approvedLeaves.filter((leave) => {
+      const startDate = new Date(leave.startDate);
+      const endDate = new Date(leave.endDate);
+      return startDate <= yearEnd && endDate >= yearStart;
+    });
+  }
 
   if (holidays.length === 0 && approvedLeaves.length === 0) {
     return res.status(200).json({

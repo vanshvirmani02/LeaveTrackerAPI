@@ -1,4 +1,4 @@
-import { body, param } from "express-validator";
+import { body, param, query } from "express-validator";
 import mongoose from "mongoose";
 import { HOLIDAY_TYPES } from "../config/constants.js";
 
@@ -56,4 +56,12 @@ export const updateHolidayValidation = [
 
 export const holidayIdParamValidation = [
   param("id").custom(mongoIdValidator),
+];
+
+export const getHolidaysQueryValidation = [
+  query("year")
+    .optional()
+    .isInt({ min: 1900, max: 2100 })
+    .withMessage("Year must be a valid 4-digit year.")
+    .toInt(),
 ];

@@ -34,6 +34,15 @@ class HolidayRepository {
     return Holiday.find().sort({ date: 1 });
   }
 
+  async findByYear(year) {
+    const start = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0));
+    const end = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999));
+
+    return Holiday.find({
+      date: { $gte: start, $lte: end },
+    }).sort({ date: 1 });
+  }
+
   async findBetweenDates(startDate, endDate) {
     const start = new Date(startDate);
     start.setUTCHours(0, 0, 0, 0);
