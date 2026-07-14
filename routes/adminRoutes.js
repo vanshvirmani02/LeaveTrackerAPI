@@ -30,6 +30,12 @@ import {
   deleteAdminSettingsById,
 } from "../controllers/adminSettingsController.js";
 import {
+  generatePayroll,
+  getPayroll,
+  editPayrollEntry,
+  actionPayrollEntry,
+} from "../controllers/payrollController.js";
+import {
   addEmployeeValidation,
   updateEmployeeValidation,
   employeeIdParamValidation,
@@ -48,6 +54,10 @@ import {
   actionLeaveRequestValidation,
   getAllLeaveRequestsQueryValidation,
   getLeaveBalancesQueryValidation,
+  generatePayrollValidation,
+  getPayrollValidation,
+  editPayrollValidation,
+  actionPayrollValidation,
   validateReq,
 } from "../validations/index.js";
 import { authHandler } from "../middleware/authHandler.js";
@@ -177,5 +187,25 @@ router.put(
   actionLeaveRequest,
 );
 router.get("/dashboard", getAdminDashboard);
+
+router.post(
+  "/payroll/generate",
+  generatePayrollValidation,
+  validateReq,
+  generatePayroll,
+);
+router.get("/payroll", getPayrollValidation, validateReq, getPayroll);
+router.put(
+  "/payroll/:monthYear/employees/:employeeId",
+  editPayrollValidation,
+  validateReq,
+  editPayrollEntry,
+);
+router.put(
+  "/payroll/:monthYear/employees/:employeeId/action",
+  actionPayrollValidation,
+  validateReq,
+  actionPayrollEntry,
+);
 
 export default router;

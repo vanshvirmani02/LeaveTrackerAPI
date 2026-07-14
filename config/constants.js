@@ -61,6 +61,17 @@ export const LEAVE_REQUEST_ACTION = {
   REJECT: "REJECT",
 };
 
+export const PAYROLL_STATUS = {
+  DRAFT: "DRAFT",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
+};
+
+export const PAYROLL_ACTION = {
+  APPROVE: "APPROVE",
+  REJECT: "REJECT",
+};
+
 export const EMAIL_ACTION_TOKEN_STATUS = {
   PENDING: "PENDING",
   USED: "USED",

@@ -46,13 +46,22 @@ class UserRepository {
     }).select("name email");
   }
 
+  async findActiveEmployees() {
+    return User.find({
+      role: { $in: [ROLES.EMPLOYEE, ROLES.MANAGER] },
+      status: USER_STATUS.ACTIVE,
+    })
+      .select("-password")
+      .sort({ name: 1 });
+  }
+
   async findByEmployeeIds(employeeIds) {
     if (!employeeIds.length) {
       return [];
     }
 
     return User.find({ employeeId: { $in: employeeIds } })
-      .select("employeeId name managerId")
+      .select("employeeId name designation department managerId")
       .populate("managerId", "name");
   }
 
