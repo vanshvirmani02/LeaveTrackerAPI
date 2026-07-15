@@ -10,7 +10,11 @@ import {
 } from "./leaveAllocationUtils.js";
 import { sendLeaveDecisionEmail } from "./leaveRequestEmail.js";
 import { isEmailNotificationEnabled } from "./leaveSettingsUtils.js";
-import { LEAVE_REQUEST_STATUS, LEAVE_REQUEST_ACTION } from "../config/constants.js";
+import {
+  LEAVE_REQUEST_STATUS,
+  LEAVE_REQUEST_ACTION,
+  LEAVE_APPROVED_BY,
+} from "../config/constants.js";
 
 const notifyEmployeeOfLeaveDecision = async (leaveRequest, employee, status) => {
   if (!employee?.email) {
@@ -57,6 +61,7 @@ export const processLeaveRequestAction = async ({
   action,
   employeeId,
   leaveTypeId,
+  approvedBy = null,
 }) => {
   const leaveRequest = await leaveRequestRepository.findById(leaveRequestId);
 
@@ -96,6 +101,7 @@ export const processLeaveRequestAction = async ({
     const updatedLeaveRequest = await leaveRequestRepository.updateStatusById(
       leaveRequestId,
       LEAVE_REQUEST_STATUS.REJECTED,
+      { approvedBy: null },
     );
     await emailActionTokenRepository.markTokensUsedForLeaveRequest(leaveRequestId);
 
@@ -178,9 +184,16 @@ export const processLeaveRequestAction = async ({
     };
   }
 
+  const resolvedApprovedBy = Object.values(LEAVE_APPROVED_BY).includes(
+    approvedBy,
+  )
+    ? approvedBy
+    : null;
+
   const updatedLeaveRequest = await leaveRequestRepository.updateStatusById(
     leaveRequestId,
     LEAVE_REQUEST_STATUS.APPROVED,
+    { approvedBy: resolvedApprovedBy },
   );
 
   const leaveBalance = await leaveBalanceRepository.upsertOnApprove({

@@ -36,7 +36,7 @@ class UserRepository {
   async findByEmployeeId(employeeId) {
     return User.findOne({ employeeId })
       .select("-password")
-      .populate("managerId", "name employeeId");
+      .populate("managerId", "name employeeId email");
   }
 
   async findActiveAdmins() {
@@ -65,7 +65,7 @@ class UserRepository {
     }
 
     return User.find({ employeeId: { $in: employeeIds } })
-      .select("employeeId name designation department managerId")
+      .select("employeeId name designation department managerId joiningDate")
       .populate("managerId", "name");
   }
 

@@ -1,7 +1,27 @@
 import emailActionTokenRepository from "../repository/emailActionTokenRepository.js";
 import userRepository from "../repository/userRepository.js";
-import { sendLeaveRequestActionEmail } from "./leaveRequestEmail.js";
+import {
+  sendLeaveRequestActionEmail,
+  sendManagerLeaveRequestEmail,
+} from "./leaveRequestEmail.js";
 import { isEmailNotificationEnabled } from "./leaveSettingsUtils.js";
+
+const buildLeaveEmailPayload = (leaveRequest, employee) => {
+  const leaveTypeName =
+    leaveRequest.leaveType?.leaveName ||
+    leaveRequest.leaveType?.name ||
+    "Leave";
+
+  return {
+    employeeName: employee.name,
+    employeeId: employee.employeeId,
+    leaveTypeName,
+    startDate: leaveRequest.startDate,
+    endDate: leaveRequest.endDate,
+    halfDay: leaveRequest.halfDay,
+    reason: leaveRequest.reason,
+  };
+};
 
 export const notifyAdminsOfLeaveRequest = async (leaveRequest, employee) => {
   if (!leaveRequest?._id || !employee) {
@@ -12,40 +32,36 @@ export const notifyAdminsOfLeaveRequest = async (leaveRequest, employee) => {
     return;
   }
 
+  const emailPayload = buildLeaveEmailPayload(leaveRequest, employee);
+
   const admins = await userRepository.findActiveAdmins();
-  if (!admins.length) {
+  if (admins.length) {
+    const { approveToken, rejectToken, expiresAt } =
+      await emailActionTokenRepository.createActionTokens(leaveRequest._id);
+
+    for (const admin of admins) {
+      await sendLeaveRequestActionEmail({
+        ...emailPayload,
+        to: admin.email,
+        approveToken: approveToken.token,
+        rejectToken: rejectToken.token,
+        expiresAt,
+      });
+    }
+  } else {
     console.warn(
-      "No active admin users found. Skipping leave request email notification.",
+      "No active admin users found. Skipping leave request admin email notification.",
     );
-    return;
   }
 
-  const { approveToken, rejectToken, expiresAt } =
-    await emailActionTokenRepository.createActionTokens(leaveRequest._id);
+  const manager = employee.managerId;
+  const managerEmail =
+    manager && typeof manager === "object" ? manager.email : null;
 
-  const leaveTypeName =
-    leaveRequest.leaveType?.leaveName ||
-    leaveRequest.leaveType?.name ||
-    "Leave";
-
-  const emailPayload = {
-    employeeName: employee.name,
-    employeeId: employee.employeeId,
-    leaveTypeName,
-    startDate: leaveRequest.startDate,
-    endDate: leaveRequest.endDate,
-    halfDay: leaveRequest.halfDay,
-    reason: leaveRequest.reason,
-    approveToken: approveToken.token,
-    rejectToken: rejectToken.token,
-    expiresAt,
-  };
-
-  // Send one-by-one so parallel Gmail connections don't time out on flaky networks
-  for (const admin of admins) {
-    await sendLeaveRequestActionEmail({
+  if (managerEmail) {
+    await sendManagerLeaveRequestEmail({
       ...emailPayload,
-      to: admin.email,
+      to: managerEmail,
     });
   }
 };

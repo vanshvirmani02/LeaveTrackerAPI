@@ -1,6 +1,8 @@
 import asyncHandler from "../middleware/asyncHandler.js";
 import userRepository from "../repository/userRepository.js";
 import sessionRepository from "../repository/sessionRepository.js";
+import bankDetailsRepository from "../repository/bankDetailsRepository.js";
+import skillsRepository from "../repository/skillsRepository.js";
 import { isAllowedOrigin } from "../utils/commonFunctions.js";
 import { USER_STATUS, ROLES } from "../config/constants.js";
 import {
@@ -247,6 +249,43 @@ export const getUserProfile = asyncHandler(async (req, res) => {
       ...rest,
       id: _id?.toString(),
     },
+  });
+});
+
+export const getProfileStatus = asyncHandler(async (req, res) => {
+  const employeeId = req.user?.employeeId;
+
+  if (!employeeId) {
+    return res.status(400).json({
+      success: false,
+      message: "Employee ID not found for the authenticated user.",
+    });
+  }
+
+  const [bankDetails, skills] = await Promise.all([
+    bankDetailsRepository.findByEmployeeId(employeeId),
+    skillsRepository.findByEmployeeId(employeeId),
+  ]);
+
+  const bankDetailsFilled = Boolean(
+    bankDetails?.accountHolderName &&
+      bankDetails?.bankName &&
+      bankDetails?.accountNumber &&
+      bankDetails?.ifscCode &&
+      bankDetails?.branch,
+  );
+
+  const skillsFilled = Boolean(
+    skills &&
+      ((Array.isArray(skills.skills) && skills.skills.length > 0) ||
+        skills.primarySkill?.trim()),
+  );
+
+  return res.status(200).json({
+    success: true,
+    employeeId,
+    bankDetailsFilled,
+    skillsFilled,
   });
 });
 

@@ -2,7 +2,7 @@ import asyncHandler from "../middleware/asyncHandler.js";
 import emailActionTokenRepository from "../repository/emailActionTokenRepository.js";
 import { processLeaveRequestAction } from "../utils/leaveRequestActionService.js";
 import { portalLoginUrl } from "../config/index.js";
-import { LEAVE_REQUEST_ACTION } from "../config/constants.js";
+import { LEAVE_REQUEST_ACTION, LEAVE_APPROVED_BY } from "../config/constants.js";
 
 const redirectToPortalLogin = (res) => {
   return res.redirect(302, portalLoginUrl);
@@ -48,6 +48,7 @@ export const handleEmailLeaveAction = asyncHandler(async (req, res) => {
   const result = await processLeaveRequestAction({
     leaveRequestId: actionToken.leaveRequestId,
     action: actionToken.action,
+    approvedBy: LEAVE_APPROVED_BY.ADMIN,
   });
 
   if (!result.success) {

@@ -1,5 +1,9 @@
 import mongoose from "mongoose";
-import { HALF_DAY_PERIODS, LEAVE_REQUEST_STATUS } from "../config/constants.js";
+import {
+  HALF_DAY_PERIODS,
+  LEAVE_REQUEST_STATUS,
+  LEAVE_APPROVED_BY,
+} from "../config/constants.js";
 
 const leaveRequestSchema = new mongoose.Schema(
   {
@@ -45,6 +49,11 @@ const leaveRequestSchema = new mongoose.Schema(
       type: String,
       enum: Object.values(LEAVE_REQUEST_STATUS),
       default: LEAVE_REQUEST_STATUS.PENDING,
+    },
+    approvedBy: {
+      type: String,
+      enum: [...Object.values(LEAVE_APPROVED_BY), null],
+      default: null,
     },
     reason: {
       type: String,

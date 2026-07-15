@@ -61,6 +61,11 @@ export const LEAVE_REQUEST_ACTION = {
   REJECT: "REJECT",
 };
 
+export const LEAVE_APPROVED_BY = {
+  ADMIN: "ADMIN",
+  MANAGER: "MANAGER",
+};
+
 export const PAYROLL_STATUS = {
   DRAFT: "DRAFT",
   APPROVED: "APPROVED",

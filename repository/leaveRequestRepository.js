@@ -225,10 +225,10 @@ class LeaveRequestRepository {
     return LeaveRequest.findOne(filter).populate("leaveType");
   }
 
-  async updateStatusById(id, status) {
+  async updateStatusById(id, status, extraFields = {}) {
     return LeaveRequest.findByIdAndUpdate(
       id,
-      { status },
+      { status, ...extraFields },
       { returnDocument: "after", runValidators: true },
     ).populate("leaveType");
   }

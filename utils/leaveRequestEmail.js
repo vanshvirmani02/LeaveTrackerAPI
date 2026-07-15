@@ -124,6 +124,98 @@ export const sendLeaveRequestActionEmail = async ({
   return sendEmail({ to, subject, html, text });
 };
 
+export const buildManagerLeaveRequestEmail = ({
+  employeeName,
+  employeeId,
+  leaveTypeName,
+  startDate,
+  endDate,
+  halfDay,
+  reason,
+  loginUrl,
+}) => {
+  const subject = `Team leave request: ${employeeName} (${employeeId})`;
+  const halfDayText = halfDay ? "Yes" : "No";
+
+  const text = [
+    `An employee on your team has requested leave.`,
+    ``,
+    `Employee: ${employeeName} (${employeeId})`,
+    `Leave type: ${leaveTypeName}`,
+    `Start date: ${formatDate(startDate)}`,
+    `End date: ${formatDate(endDate)}`,
+    `Half day: ${halfDayText}`,
+    `Reason: ${reason || "-"}`,
+    ``,
+    `Log in to the portal to review and take action: ${loginUrl}`,
+  ].join("\n");
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
+      <h2 style="margin-bottom: 8px;">Team leave request</h2>
+      <p style="margin-top: 0;">An employee on your team has requested leave. Log in to the portal to review and take action.</p>
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Employee</strong></td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${employeeName} (${employeeId})</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Leave type</strong></td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${leaveTypeName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Start date</strong></td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${formatDate(startDate)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>End date</strong></td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${formatDate(endDate)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Half day</strong></td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${halfDayText}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Reason</strong></td>
+          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${reason || "-"}</td>
+        </tr>
+      </table>
+      <div style="margin: 24px 0;">
+        <a href="${loginUrl}" style="display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 20px; border-radius: 6px;">Login</a>
+      </div>
+      <p style="font-size: 13px; color: #6b7280;">
+        After logging in, open your team leave requests to approve or reject this request.
+      </p>
+    </div>
+  `;
+
+  return { subject, html, text };
+};
+
+export const sendManagerLeaveRequestEmail = async ({
+  to,
+  employeeName,
+  employeeId,
+  leaveTypeName,
+  startDate,
+  endDate,
+  halfDay,
+  reason,
+}) => {
+  const { subject, html, text } = buildManagerLeaveRequestEmail({
+    employeeName,
+    employeeId,
+    leaveTypeName,
+    startDate,
+    endDate,
+    halfDay,
+    reason,
+    loginUrl: portalLoginUrl,
+  });
+
+  return sendEmail({ to, subject, html, text });
+};
+
 export const sendLeaveDecisionEmail = async ({
   to,
   employeeName,

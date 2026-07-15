@@ -13,7 +13,7 @@ import {
   getLeaveBalances,
 } from "../controllers/leaveBalanceController.js";
 import { getAllHolidays, getManagerHolidays } from "../controllers/holidayController.js";
-import { getUserProfile } from "../controllers/authController.js";
+import { getUserProfile, getProfileStatus } from "../controllers/authController.js";
 import {
   addBankDetails,
   getBankDetails,
@@ -89,6 +89,7 @@ router.get(
 );
 router.get("/getAllLeaveTypes", getAllLeaveTypes);
 router.get("/profile", getUserProfile);
+router.get("/profile-status", getProfileStatus);
 
 router.post(
   "/bank-details",

@@ -676,27 +676,67 @@ export const getAllLeaveRequests = asyncHandler(async (req, res) => {
   const employeeIds = [
     ...new Set(leaveRequests.map((leaveRequest) => leaveRequest.employeeId)),
   ];
-  const employees = await userRepository.findByEmployeeIds(employeeIds);
+  const [employees, leaveBalances] = await Promise.all([
+    userRepository.findByEmployeeIds(employeeIds),
+    leaveBalanceRepository.findByEmployeeIds(employeeIds),
+  ]);
 
   const employeeDetailsMap = employees.reduce((map, employee) => {
     map.set(employee.employeeId, {
       employeeName: employee.name,
       managerName: employee.managerId?.name ?? null,
+      joiningDate: employee.joiningDate,
     });
     return map;
   }, new Map());
 
+  const leaveBalanceMap = leaveBalances.reduce((map, balance) => {
+    const leaveTypeId =
+      balance.leaveTypeId?._id?.toString() ??
+      balance.leaveTypeId?.toString();
+    if (leaveTypeId) {
+      map.set(`${balance.employeeId}:${leaveTypeId}`, balance);
+    }
+    return map;
+  }, new Map());
+
+  const resolveAvailableLeave = (leaveRequest) => {
+    const leaveType = leaveRequest.leaveType;
+    const leaveTypeId =
+      leaveType?._id?.toString() ?? leaveType?.id?.toString();
+    if (!leaveTypeId) {
+      return 0;
+    }
+
+    const balance = leaveBalanceMap.get(
+      `${leaveRequest.employeeId}:${leaveTypeId}`,
+    );
+    const employee = employeeDetailsMap.get(leaveRequest.employeeId);
+    const allocatedLeaves =
+      balance?.allocatedLeaves ??
+      calculateAllocatedLeaves({
+        annualQuota: leaveType?.annualQuota,
+        accrualType: leaveType?.accrualType,
+        joiningDate: employee?.joiningDate,
+        referenceDate: leaveRequest.startDate,
+      });
+    const consumedLeaves = balance?.consumedLeaves ?? 0;
+
+    return Math.max(allocatedLeaves - consumedLeaves, 0);
+  };
+
   res.status(200).json({
     success: true,
     count: leaveRequests.length,
-    leaveRequests: leaveRequests.map((leaveRequest) =>
-      formatLeaveRequest(
+    leaveRequests: leaveRequests.map((leaveRequest) => ({
+      ...formatLeaveRequest(
         leaveRequest,
         employeeDetailsMap.get(leaveRequest.employeeId) ?? {
           employeeName: null,
           managerName: null,
         },
       ),
-    ),
+      availableLeave: resolveAvailableLeave(leaveRequest),
+    })),
   });
 });

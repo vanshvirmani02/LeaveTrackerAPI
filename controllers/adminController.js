@@ -10,6 +10,7 @@ import {
   PAYROLL_TYPES,
   ROLES,
   USER_STATUS,
+  LEAVE_APPROVED_BY,
 } from "../config/constants.js";
 import { encryptPasswordForStorage, decrypt } from "../utils/authUtils.js";
 import { sendEmployeeWelcomeEmail } from "../utils/leaveRequestEmail.js";
@@ -396,11 +397,17 @@ export const actionLeaveRequest = asyncHandler(async (req, res) => {
     }
   }
 
+  const approvedBy =
+    req.leaveRequestScope === "team"
+      ? LEAVE_APPROVED_BY.MANAGER
+      : LEAVE_APPROVED_BY.ADMIN;
+
   const result = await processLeaveRequestAction({
     leaveRequestId: id,
     action,
     employeeId,
     leaveTypeId: leaveType,
+    approvedBy,
   });
 
   if (!result.success) {
