@@ -56,6 +56,7 @@ import {
   getMyPayroll,
   downloadMySalarySlip,
 } from "../controllers/payrollController.js";
+import { getMySalary } from "../controllers/salaryController.js";
 
 const router = express.Router();
 
@@ -153,6 +154,7 @@ router.get(
 );
 router.get("/manager/dashboard", teamScopeHandler, getManagerDashboard);
 
+router.get("/salary", getMySalary);
 router.get("/payroll", getMyPayrollValidation, validateReq, getMyPayroll);
 router.get(
   "/payroll/salary-slip",
