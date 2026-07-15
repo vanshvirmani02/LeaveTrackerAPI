@@ -3,6 +3,8 @@ import {
   PAYROLL_ACTION,
   PAYROLL_STATUS,
 } from "../config/constants.js";
+import adminSettingsRepository from "../repository/adminSettingsRepository.js";
+import bankDetailsRepository from "../repository/bankDetailsRepository.js";
 import holidayRepository from "../repository/holidayRepository.js";
 import leaveRequestRepository from "../repository/leaveRequestRepository.js";
 import payrollRepository from "../repository/payrollRepository.js";
@@ -14,6 +16,7 @@ import {
   calculatePayrollSummary,
   parseMonthYear,
 } from "../utils/payrollUtils.js";
+import { buildSalarySlipPdf } from "../utils/salarySlipPdfUtils.js";
 
 const normalizeStatusFilter = (status) => {
   if (!status || String(status).toUpperCase() === "ALL") {
@@ -320,4 +323,121 @@ export const actionPayrollEntry = asyncHandler(async (req, res) => {
     employeeSalary: formatEmployeeSalary(updatedEntry),
     summary: calculatePayrollSummary(updated.employeeSalary),
   });
+});
+
+const getApprovedEmployeePayrollEntry = async (employeeId, monthYear) => {
+  const parsed = parseMonthYear(monthYear);
+  if (!parsed) {
+    return {
+      error: {
+        statusCode: 400,
+        message: "Invalid monthYear. Expected format YYYY-MM.",
+      },
+    };
+  }
+
+  const payroll = await payrollRepository.findApprovedEntryByEmployee(
+    monthYear,
+    employeeId,
+    PAYROLL_STATUS.APPROVED,
+  );
+
+  const entry = payroll?.employeeSalary?.[0];
+  if (!entry) {
+    return {
+      error: {
+        statusCode: 404,
+        message:
+          "Approved payroll not found for this month. It may still be pending or was rejected.",
+      },
+    };
+  }
+
+  return { payroll, entry };
+};
+
+export const getMyPayroll = asyncHandler(async (req, res) => {
+  const employeeId = req.user?.employeeId;
+  const { monthYear } = req.query;
+
+  if (!employeeId) {
+    return res.status(400).json({
+      success: false,
+      message: "Employee ID not found for the logged-in user.",
+    });
+  }
+
+  const result = await getApprovedEmployeePayrollEntry(employeeId, monthYear);
+  if (result.error) {
+    return res.status(result.error.statusCode).json({
+      success: false,
+      message: result.error.message,
+    });
+  }
+
+  const employee = await userRepository.findByEmployeeId(employeeId);
+  const formatted = formatEmployeeSalary(result.entry);
+
+  return res.status(200).json({
+    success: true,
+    monthYear: result.payroll.monthYear,
+    payroll: {
+      ...formatted,
+      employeeName: employee?.name ?? req.user?.name ?? null,
+      designation: employee?.designation ?? null,
+      department: employee?.department ?? null,
+    },
+  });
+});
+
+export const downloadMySalarySlip = asyncHandler(async (req, res) => {
+  const employeeId = req.user?.employeeId;
+  const { monthYear } = req.query;
+
+  if (!employeeId) {
+    return res.status(400).json({
+      success: false,
+      message: "Employee ID not found for the logged-in user.",
+    });
+  }
+
+  const result = await getApprovedEmployeePayrollEntry(employeeId, monthYear);
+  if (result.error) {
+    return res.status(result.error.statusCode).json({
+      success: false,
+      message: result.error.message,
+    });
+  }
+
+  const [employee, bankDetails, adminSettingsList] = await Promise.all([
+    userRepository.findByEmployeeId(employeeId),
+    bankDetailsRepository.findByEmployeeId(employeeId),
+    adminSettingsRepository.findAll(),
+  ]);
+
+  if (!employee) {
+    return res.status(404).json({
+      success: false,
+      message: "Employee not found.",
+    });
+  }
+
+  const organizationName =
+    adminSettingsList?.[0]?.organization?.organizationName ||
+    "Leave Tracker Organization";
+
+  const pdfBuffer = await buildSalarySlipPdf({
+    organizationName,
+    employee,
+    bankDetails,
+    monthYear: result.payroll.monthYear,
+    payrollEntry: result.entry,
+  });
+
+  const filename = `salary-slip-${employeeId}-${monthYear}.pdf`;
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.setHeader("Content-Length", pdfBuffer.length);
+  return res.status(200).send(pdfBuffer);
 });

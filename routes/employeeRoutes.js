@@ -40,6 +40,8 @@ import {
   addSkillsValidation,
   updateSkillsValidation,
   getHolidaysQueryValidation,
+  getMyPayrollValidation,
+  downloadSalarySlipValidation,
   validateReq,
 } from "../validations/index.js";
 import { authHandler } from "../middleware/authHandler.js";
@@ -50,6 +52,10 @@ import {
   getEmployeeDashboard,
   getManagerDashboard,
 } from "../controllers/dashboardController.js";
+import {
+  getMyPayroll,
+  downloadMySalarySlip,
+} from "../controllers/payrollController.js";
 
 const router = express.Router();
 
@@ -145,5 +151,13 @@ router.get(
   getLeaveBalances,
 );
 router.get("/manager/dashboard", teamScopeHandler, getManagerDashboard);
+
+router.get("/payroll", getMyPayrollValidation, validateReq, getMyPayroll);
+router.get(
+  "/payroll/salary-slip",
+  downloadSalarySlipValidation,
+  validateReq,
+  downloadMySalarySlip,
+);
 
 export default router;

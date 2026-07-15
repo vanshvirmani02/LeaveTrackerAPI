@@ -90,3 +90,7 @@ export const actionPayrollValidation = [
     return true;
   }),
 ];
+
+export const getMyPayrollValidation = [monthYearRule(query)];
+
+export const downloadSalarySlipValidation = [monthYearRule(query)];

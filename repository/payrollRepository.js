@@ -34,6 +34,31 @@ class PayrollRepository {
       { returnDocument: "after", runValidators: true },
     );
   }
+
+  async findApprovedEntryByEmployee(monthYear, employeeId, status) {
+    return Payroll.findOne(
+      {
+        monthYear,
+        employeeSalary: {
+          $elemMatch: {
+            employeeId,
+            status,
+          },
+        },
+      },
+      {
+        monthYear: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        employeeSalary: {
+          $elemMatch: {
+            employeeId,
+            status,
+          },
+        },
+      },
+    );
+  }
 }
 
 export default new PayrollRepository();
