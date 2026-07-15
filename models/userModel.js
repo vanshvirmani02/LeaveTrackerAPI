@@ -81,6 +81,16 @@ userSchema.pre("save", async function () {
   this.employeeId = await generateEmployeeId(this.joiningDate, this.constructor);
 });
 
+// Enforce at most one ADMIN user at the database level
+userSchema.index(
+  { role: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { role: ROLES.ADMIN },
+    name: "unique_single_admin",
+  },
+);
+
 const User = mongoose.model("User", userSchema);
 
 export default User;

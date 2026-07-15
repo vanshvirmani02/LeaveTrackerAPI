@@ -46,14 +46,12 @@ export const authHandler = async (req, res, next) => {
       throw new Error("User is inactive");
     }
 
-    const userObject = user.toObject();
-    delete userObject.password;
-
+    // Only fields consumed by protected APIs / role middleware
     req.user = {
-      ...userObject,
-      id: user._id,
+      id: user._id.toString(),
+      employeeId: user.employeeId,
+      role: user.role,
       sessionId,
-      deviceType: session.deviceType,
     };
 
     next();

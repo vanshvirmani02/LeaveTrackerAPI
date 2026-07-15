@@ -22,6 +22,8 @@ const smtpConfig = {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
     from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    // Set SMTP_TLS_REJECT_UNAUTHORIZED=false when antivirus/proxy injects a self-signed cert
+    rejectUnauthorized: process.env.SMTP_TLS_REJECT_UNAUTHORIZED !== "false",
 };
 
 const apiBaseUrl = (process.env.API_BASE_URL || `http://localhost:${PORT}`).replace(

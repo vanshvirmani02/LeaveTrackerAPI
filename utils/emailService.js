@@ -6,6 +6,17 @@ let transporter;
 const isSmtpConfigured = () =>
   Boolean(smtpConfig.host && smtpConfig.user && smtpConfig.pass);
 
+const isRetryableSmtpError = (error) => {
+  const code = error?.code;
+  return (
+    code === "ETIMEDOUT" ||
+    code === "ECONNECTION" ||
+    code === "ESOCKET" ||
+    code === "ECONNRESET" ||
+    code === "EENVELOPE"
+  );
+};
+
 const getTransporter = () => {
   if (!isSmtpConfigured()) {
     return null;
@@ -20,13 +31,21 @@ const getTransporter = () => {
         user: smtpConfig.user,
         pass: smtpConfig.pass,
       },
+      tls: {
+        rejectUnauthorized: smtpConfig.rejectUnauthorized,
+      },
+      // Prefer IPv4 — IPv6 / flaky routes to Gmail often cause ETIMEDOUT on Windows
+      family: 4,
+      connectionTimeout: 30_000,
+      greetingTimeout: 30_000,
+      socketTimeout: 30_000,
     });
   }
 
   return transporter;
 };
 
-export const sendEmail = async ({ to, subject, html, text }) => {
+export const sendEmail = async ({ to, subject, html, text }, { retries = 2 } = {}) => {
   const mailTransporter = getTransporter();
 
   if (!mailTransporter) {
@@ -36,15 +55,31 @@ export const sendEmail = async ({ to, subject, html, text }) => {
     return { skipped: true };
   }
 
-  const info = await mailTransporter.sendMail({
-    from: smtpConfig.from,
-    to,
-    subject,
-    html,
-    text,
-  });
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      const info = await mailTransporter.sendMail({
+        from: smtpConfig.from,
+        to,
+        subject,
+        html,
+        text,
+      });
+      return { skipped: false, messageId: info.messageId };
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries && isRetryableSmtpError(error)) {
+        console.warn(
+          `SMTP send attempt ${attempt + 1} failed (${error.code}). Retrying...`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+        continue;
+      }
+      throw error;
+    }
+  }
 
-  return { skipped: false, messageId: info.messageId };
+  throw lastError;
 };
 
 export default sendEmail;

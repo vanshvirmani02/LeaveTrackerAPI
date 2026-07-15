@@ -8,7 +8,37 @@ import {
   calculateAllocatedLeaves,
   calculateLeaveDays,
 } from "./leaveAllocationUtils.js";
+import { sendLeaveDecisionEmail } from "./leaveRequestEmail.js";
+import { isEmailNotificationEnabled } from "./leaveSettingsUtils.js";
 import { LEAVE_REQUEST_STATUS, LEAVE_REQUEST_ACTION } from "../config/constants.js";
+
+const notifyEmployeeOfLeaveDecision = async (leaveRequest, employee, status) => {
+  if (!employee?.email) {
+    return;
+  }
+
+  if (!(await isEmailNotificationEnabled())) {
+    return;
+  }
+
+  const leaveTypeName =
+    leaveRequest.leaveType?.leaveName ||
+    leaveRequest.leaveType?.name ||
+    "Leave";
+
+  try {
+    await sendLeaveDecisionEmail({
+      to: employee.email,
+      employeeName: employee.name,
+      leaveTypeName,
+      startDate: leaveRequest.startDate,
+      endDate: leaveRequest.endDate,
+      status,
+    });
+  } catch (error) {
+    console.error("Failed to send leave decision email:", error);
+  }
+};
 
 const getLeaveTypeId = (leaveType) => {
   if (!leaveType) {
@@ -68,6 +98,13 @@ export const processLeaveRequestAction = async ({
       LEAVE_REQUEST_STATUS.REJECTED,
     );
     await emailActionTokenRepository.markTokensUsedForLeaveRequest(leaveRequestId);
+
+    const employee = await userRepository.findByEmployeeId(resolvedEmployeeId);
+    void notifyEmployeeOfLeaveDecision(
+      updatedLeaveRequest || leaveRequest,
+      employee,
+      LEAVE_REQUEST_STATUS.REJECTED,
+    );
 
     return {
       success: true,
@@ -154,6 +191,12 @@ export const processLeaveRequestAction = async ({
   });
 
   await emailActionTokenRepository.markTokensUsedForLeaveRequest(leaveRequestId);
+
+  void notifyEmployeeOfLeaveDecision(
+    updatedLeaveRequest || leaveRequest,
+    employee,
+    LEAVE_REQUEST_STATUS.APPROVED,
+  );
 
   return {
     success: true,

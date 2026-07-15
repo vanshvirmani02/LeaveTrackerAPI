@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import config from "./index.js";
+import User from "../models/userModel.js";
 
 const connectDB = async () => {
   try {
@@ -12,6 +13,14 @@ const connectDB = async () => {
 
     await mongoose.connect(process.env.MONGO_URI || config.dbURI, options);
     console.log("MongoDB Connected");
+
+    try {
+      await User.syncIndexes();
+    } catch (indexError) {
+      console.error(
+        `Failed to sync user indexes (check for multiple ADMIN users): ${indexError.message}`,
+      );
+    }
   } catch (error) {
     console.error(`MongoDB connection error: ${error.message}`);
     process.exit(1);

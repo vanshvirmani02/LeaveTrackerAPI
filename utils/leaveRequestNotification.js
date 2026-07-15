@@ -1,9 +1,14 @@
 import emailActionTokenRepository from "../repository/emailActionTokenRepository.js";
 import userRepository from "../repository/userRepository.js";
 import { sendLeaveRequestActionEmail } from "./leaveRequestEmail.js";
+import { isEmailNotificationEnabled } from "./leaveSettingsUtils.js";
 
 export const notifyAdminsOfLeaveRequest = async (leaveRequest, employee) => {
   if (!leaveRequest?._id || !employee) {
+    return;
+  }
+
+  if (!(await isEmailNotificationEnabled())) {
     return;
   }
 
@@ -36,14 +41,13 @@ export const notifyAdminsOfLeaveRequest = async (leaveRequest, employee) => {
     expiresAt,
   };
 
-  await Promise.all(
-    admins.map((admin) =>
-      sendLeaveRequestActionEmail({
-        ...emailPayload,
-        to: admin.email,
-      }),
-    ),
-  );
+  // Send one-by-one so parallel Gmail connections don't time out on flaky networks
+  for (const admin of admins) {
+    await sendLeaveRequestActionEmail({
+      ...emailPayload,
+      to: admin.email,
+    });
+  }
 };
 
 export default notifyAdminsOfLeaveRequest;

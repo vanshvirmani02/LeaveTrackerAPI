@@ -9,7 +9,17 @@ import {
   calculateLeaveDays,
 } from "../utils/leaveAllocationUtils.js";
 import { notifyAdminsOfLeaveRequest } from "../utils/leaveRequestNotification.js";
-import { LEAVE_TYPE_STATUS, LEAVE_REQUEST_STATUS } from "../config/constants.js";
+import { processLeaveRequestAction } from "../utils/leaveRequestActionService.js";
+import {
+  getLeaveSettings,
+  isSickLeaveType,
+  isWithinSickAutoApproveWindow,
+} from "../utils/leaveSettingsUtils.js";
+import {
+  LEAVE_TYPE_STATUS,
+  LEAVE_REQUEST_STATUS,
+  LEAVE_REQUEST_ACTION,
+} from "../config/constants.js";
 
 export const formatLeaveRequest = (leaveRequest, { employeeName, managerName } = {}) => {
   const doc = leaveRequest.toObject ? leaveRequest.toObject() : { ...leaveRequest };
@@ -59,6 +69,62 @@ const validateDateRange = (startDate, endDate) => {
     return { valid: false, message: "End date must be on or after start date." };
   }
   return { valid: true };
+};
+
+const formatConflictDate = (date) =>
+  new Date(date).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+const validateLeaveDateAvailability = async ({
+  employeeId,
+  startDate,
+  endDate,
+  excludeLeaveRequestId = null,
+}) => {
+  const holidays = await holidayRepository.findBetweenDates(startDate, endDate);
+  if (holidays.length > 0) {
+    const holidayNames = holidays
+      .map(
+        (holiday) =>
+          `${holiday.holidayName} (${formatConflictDate(holiday.date)})`,
+      )
+      .join(", ");
+
+    return {
+      valid: false,
+      message: `Cannot raise leave on holiday(s): ${holidayNames}.`,
+      holidays,
+    };
+  }
+
+  const overlappingApproved =
+    await leaveRequestRepository.findApprovedOverlappingForEmployee(
+      employeeId,
+      startDate,
+      endDate,
+      { excludeId: excludeLeaveRequestId },
+    );
+
+  if (overlappingApproved.length > 0) {
+    const conflictText = overlappingApproved
+      .map((leave) => {
+        const leaveTypeName =
+          leave.leaveType?.leaveName || leave.leaveType?.name || "Leave";
+        return `${leaveTypeName} (${formatConflictDate(leave.startDate)} - ${formatConflictDate(leave.endDate)})`;
+      })
+      .join(", ");
+
+    return {
+      valid: false,
+      message: `You already have approved leave on one or more of these dates: ${conflictText}.`,
+      overlappingLeaves: overlappingApproved,
+    };
+  }
+
+  return { valid: true, holidays: [] };
 };
 
 const getEmployeeLeaveAvailability = async ({
@@ -162,7 +228,19 @@ export const createLeaveRequest = asyncHandler(async (req, res) => {
     });
   }
 
-  const holidays = await holidayRepository.findBetweenDates(startDate, endDate);
+  const dateAvailability = await validateLeaveDateAvailability({
+    employeeId,
+    startDate,
+    endDate,
+  });
+  if (!dateAvailability.valid) {
+    return res.status(400).json({
+      success: false,
+      message: dateAvailability.message,
+    });
+  }
+
+  const holidays = dateAvailability.holidays;
   const requestedLeaveDays = calculateLeaveDays({
     startDate,
     endDate,
@@ -237,14 +315,59 @@ export const createLeaveRequest = asyncHandler(async (req, res) => {
     );
 
   const employee = await userRepository.findByEmployeeId(employeeId);
-  notifyAdminsOfLeaveRequest(populatedLeaveRequest, employee).catch((error) => {
-    console.error("Failed to send leave request notification email:", error);
-  });
+  const leaveSettings = await getLeaveSettings();
+  const leaveTypeDoc = leaveTypeValidation.leaveType;
+  const shouldAutoApproveSickLeave =
+    leaveSettings.autoApproveSickLeave &&
+    isSickLeaveType(leaveTypeDoc) &&
+    isWithinSickAutoApproveWindow(startDate);
+
+  if (shouldAutoApproveSickLeave) {
+    const autoApproveResult = await processLeaveRequestAction({
+      leaveRequestId: leaveRequest._id,
+      action: LEAVE_REQUEST_ACTION.APPROVE,
+      employeeId,
+      leaveTypeId: leaveType,
+    });
+
+    if (autoApproveResult.success) {
+      const approvedLeaveRequest =
+        await leaveRequestRepository.findByIdAndEmployeeId(
+          leaveRequest._id,
+          employeeId,
+        );
+
+      return res.status(201).json({
+        success: true,
+        message:
+          "Sick leave request created and auto-approved successfully.",
+        leaveRequest: formatLeaveRequest(approvedLeaveRequest),
+        autoApproved: true,
+      });
+    }
+
+    console.warn(
+      "Sick leave auto-approve failed; leaving request pending:",
+      autoApproveResult.message,
+    );
+  }
+
+  if (leaveSettings.emailNotification) {
+    notifyAdminsOfLeaveRequest(populatedLeaveRequest, employee).catch(
+      (error) => {
+        console.error(
+          "Failed to send leave request notification email:",
+          error,
+        );
+      },
+    );
+  }
 
   res.status(201).json({
     success: true,
     message: "Leave request created successfully.",
     leaveRequest: formatLeaveRequest(populatedLeaveRequest),
+    autoApproved: false,
   });
 });
 
@@ -398,6 +521,19 @@ export const updateLeaveRequestById = asyncHandler(async (req, res) => {
     return res.status(400).json({
       success: false,
       message: dateValidation.message,
+    });
+  }
+
+  const dateAvailability = await validateLeaveDateAvailability({
+    employeeId,
+    startDate: nextStartDate,
+    endDate: nextEndDate,
+    excludeLeaveRequestId: existingLeaveRequest._id,
+  });
+  if (!dateAvailability.valid) {
+    return res.status(400).json({
+      success: false,
+      message: dateAvailability.message,
     });
   }
 

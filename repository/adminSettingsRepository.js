@@ -21,6 +21,10 @@ class AdminSettingsRepository {
     return AdminSettings.find().sort({ createdAt: -1 });
   }
 
+  async findLatest() {
+    return AdminSettings.findOne().sort({ updatedAt: -1, createdAt: -1 });
+  }
+
   async updateById(id, updateData) {
     return AdminSettings.findByIdAndUpdate(id, updateData, {
       returnDocument: "after",

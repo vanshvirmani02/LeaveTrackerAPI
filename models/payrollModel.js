@@ -60,7 +60,6 @@ const payrollSchema = new mongoose.Schema(
   },
 );
 
-payrollSchema.index({ monthYear: 1 });
 payrollSchema.index({ "employeeSalary.employeeId": 1 });
 
 const Payroll = mongoose.model("Payroll", payrollSchema);

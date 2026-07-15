@@ -149,6 +149,33 @@ class LeaveRequestRepository {
       .sort({ startDate: 1 });
   }
 
+  async findApprovedOverlappingForEmployee(
+    employeeId,
+    rangeStart,
+    rangeEnd,
+    { excludeId = null } = {},
+  ) {
+    const start = new Date(rangeStart);
+    start.setUTCHours(0, 0, 0, 0);
+    const end = new Date(rangeEnd);
+    end.setUTCHours(23, 59, 59, 999);
+
+    const filter = {
+      employeeId,
+      status: LEAVE_REQUEST_STATUS.APPROVED,
+      startDate: { $lte: end },
+      endDate: { $gte: start },
+    };
+
+    if (excludeId) {
+      filter._id = { $ne: excludeId };
+    }
+
+    return LeaveRequest.find(filter)
+      .populate("leaveType")
+      .sort({ startDate: 1 });
+  }
+
   async countDistinctEmployeesOnLeave(employeeIds, rangeStart, rangeEnd) {
     const filter = {
       status: LEAVE_REQUEST_STATUS.APPROVED,

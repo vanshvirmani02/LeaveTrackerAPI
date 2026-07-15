@@ -46,6 +46,10 @@ class UserRepository {
     }).select("name email");
   }
 
+  async countByRole(role) {
+    return User.countDocuments({ role });
+  }
+
   async findActiveEmployees() {
     return User.find({
       role: { $in: [ROLES.EMPLOYEE, ROLES.MANAGER] },

@@ -20,24 +20,39 @@ const getClientIpAddress = (req) =>
   req.socket?.remoteAddress ||
   "unknown";
 
+const buildAuthUserResponse = (user, { isManager } = {}) => ({
+  id: user._id.toString(),
+  employeeId: user.employeeId,
+  name: user.name,
+  email: user.email,
+  joiningDate: user.joiningDate?.toISOString?.() ?? user.joiningDate,
+  role: user.role,
+  ...(isManager !== undefined ? { isManager: Boolean(isManager) } : {}),
+});
+
+const buildTokenUser = (user) => ({
+  id: user._id.toString(),
+});
+
 const generateAndReturnTokens = async ({
   deviceType,
   deviceId,
   ipAddress,
-  userData,
+  user,
   existingSessionId,
 }) => {
+  const tokenUser = buildTokenUser(user);
   const sessionId =
     existingSessionId ??
     (await generateSessionId({
-      userId: userData.id,
+      userId: tokenUser.id,
       deviceType,
       deviceId,
       ipAddress,
     }));
 
-  const accessToken = generateToken(userData, sessionId.toString());
-  const refreshToken = generateRefreshToken(userData, sessionId.toString());
+  const accessToken = generateToken(tokenUser, sessionId.toString());
+  const refreshToken = generateRefreshToken(tokenUser, sessionId.toString());
 
   return { accessToken, refreshToken };
 };
@@ -69,6 +84,17 @@ export const signupUser = asyncHandler(async (req, res) => {
     });
   }
 
+  if (role === ROLES.ADMIN) {
+    const existingAdminCount = await userRepository.countByRole(ROLES.ADMIN);
+    if (existingAdminCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "An admin already exists. Only one admin account is allowed.",
+      });
+    }
+  }
+
   const existingUser = await userRepository.findByEmailAndRole(email, role);
   if (existingUser) {
     return res.status(400).json({
@@ -79,36 +105,41 @@ export const signupUser = asyncHandler(async (req, res) => {
 
   const ipAddress = getClientIpAddress(req);
 
-  const user = await userRepository.createUser({
-    name,
-    email,
-    password: await encryptPasswordForStorage(decrypt(password)),
-    contactNo,
-    joiningDate,
-    designation,
-    managerId : null,
-    role,
-  });
+  let user;
+  try {
+    user = await userRepository.createUser({
+      name,
+      email,
+      password: await encryptPasswordForStorage(decrypt(password)),
+      contactNo,
+      joiningDate,
+      designation,
+      managerId: null,
+      role,
+    });
+  } catch (error) {
+    if (error?.code === 11000 && role === ROLES.ADMIN) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "An admin already exists. Only one admin account is allowed.",
+      });
+    }
+    throw error;
+  }
 
-  const userData = {
-    id: user._id.toString(),
-    employeeId: user.employeeId,
-    name: user.name,
-    email: user.email,
-    joiningDate: user.joiningDate.toISOString(),
-    role: user.role,
-  };
+  const userResponse = buildAuthUserResponse(user);
 
   const { accessToken, refreshToken } = await generateAndReturnTokens({
     deviceType,
     deviceId,
     ipAddress,
-    userData,
+    user,
   });
 
   res.status(201).json({
     success: true,
-    user: userData,
+    user: userResponse,
     accessToken,
     refreshToken,
   });
@@ -164,27 +195,18 @@ export const loginUser = asyncHandler(async (req, res) => {
   const ipAddress = getClientIpAddress(req);
 
   const isManager = await userRepository.isManagerOfAnyUser(existingUser._id);
-
-  const userData = {
-    id: existingUser._id.toString(),
-    employeeId: existingUser.employeeId,
-    name: existingUser.name,
-    email: existingUser.email,
-    joiningDate: existingUser.joiningDate.toISOString(),
-    role: existingUser.role,
-    isManager,
-  };
+  const userResponse = buildAuthUserResponse(existingUser, { isManager });
 
   const { accessToken, refreshToken } = await generateAndReturnTokens({
     deviceType,
     deviceId,
     ipAddress,
-    userData,
+    user: existingUser,
   });
 
   res.status(200).json({
     success: true,
-    user: userData,
+    user: userResponse,
     accessToken,
     refreshToken,
   });
@@ -273,27 +295,19 @@ export const refreshToken = asyncHandler(async (req, res) => {
   }
 
   const isManager = await userRepository.isManagerOfAnyUser(user._id);
-  const userData = {
-    id: user._id.toString(),
-    employeeId: user.employeeId,
-    name: user.name,
-    email: user.email,
-    joiningDate: user.joiningDate.toISOString(),
-    role: user.role,
-    isManager,
-  };
 
   const { accessToken, refreshToken: nextRefreshToken } =
     await generateAndReturnTokens({
       deviceType,
       deviceId,
       ipAddress,
-      userData,
+      user,
       existingSessionId: session._id,
     });
 
   return res.status(200).json({
     success: true,
+    user: buildAuthUserResponse(user, { isManager }),
     accessToken,
     refreshToken: nextRefreshToken,
   });

@@ -17,6 +17,8 @@ import {
   parseMonthYear,
 } from "../utils/payrollUtils.js";
 import { buildSalarySlipPdf } from "../utils/salarySlipPdfUtils.js";
+import { sendPayrollApprovedEmail } from "../utils/leaveRequestEmail.js";
+import { isEmailNotificationEnabled } from "../utils/leaveSettingsUtils.js";
 
 const normalizeStatusFilter = (status) => {
   if (!status || String(status).toUpperCase() === "ALL") {
@@ -317,6 +319,27 @@ export const actionPayrollEntry = asyncHandler(async (req, res) => {
     (item) => item.employeeId === employeeId,
   );
 
+  if (nextStatus === PAYROLL_STATUS.APPROVED) {
+    Promise.all([
+      isEmailNotificationEnabled(),
+      userRepository.findByEmployeeId(employeeId),
+    ])
+      .then(([enabled, employee]) => {
+        if (!enabled || !employee?.email) {
+          return null;
+        }
+
+        return sendPayrollApprovedEmail({
+          to: employee.email,
+          employeeName: employee.name,
+          monthYear,
+        });
+      })
+      .catch((error) => {
+        console.error("Failed to send payroll approved email:", error);
+      });
+  }
+
   return res.status(200).json({
     success: true,
     message: `Payroll entry ${nextStatus.toLowerCase()} successfully.`,
@@ -383,7 +406,7 @@ export const getMyPayroll = asyncHandler(async (req, res) => {
     monthYear: result.payroll.monthYear,
     payroll: {
       ...formatted,
-      employeeName: employee?.name ?? req.user?.name ?? null,
+      employeeName: employee?.name ?? null,
       designation: employee?.designation ?? null,
       department: employee?.department ?? null,
     },

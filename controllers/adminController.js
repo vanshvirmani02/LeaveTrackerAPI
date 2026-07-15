@@ -12,6 +12,8 @@ import {
   USER_STATUS,
 } from "../config/constants.js";
 import { encryptPasswordForStorage, decrypt } from "../utils/authUtils.js";
+import { sendEmployeeWelcomeEmail } from "../utils/leaveRequestEmail.js";
+import { isEmailNotificationEnabled } from "../utils/leaveSettingsUtils.js";
 
 const formatEmployee = (user) => {
   const employee = user.toObject ? user.toObject() : { ...user };
@@ -115,10 +117,12 @@ export const addEmployee = asyncHandler(async (req, res) => {
     }
   }
 
+  const plainPassword = decrypt(password);
+
   const employee = await userRepository.createUser({
     name,
     email,
-    password: await encryptPasswordForStorage(decrypt(password)),
+    password: await encryptPasswordForStorage(plainPassword),
     contactNo,
     joiningDate,
     designation,
@@ -134,6 +138,23 @@ export const addEmployee = asyncHandler(async (req, res) => {
   const createdSalary = await salaryRepository.createSalary(
     buildSalaryPayload(employee.employeeId, salary),
   );
+
+  isEmailNotificationEnabled()
+    .then((enabled) => {
+      if (!enabled) {
+        return null;
+      }
+
+      return sendEmployeeWelcomeEmail({
+        to: employee.email,
+        employeeName: employee.name,
+        employeeId: employee.employeeId,
+        password: plainPassword,
+      });
+    })
+    .catch((error) => {
+      console.error("Failed to send employee welcome email:", error);
+    });
 
   res.status(201).json({
     success: true,

@@ -114,14 +114,21 @@ export const generateSessionId = async ({
   return session._id;
 };
 
-export const generateToken = (userData,sessionId) => {
-    const currentTime = Math.floor(Date.now() / 1000);
-    const payload = { ...userData, sessionId:sessionId,iat: currentTime};
-    const encryptedPayload = encrypt(JSON.stringify(payload));
-    const token = jwt.sign({ data: encryptedPayload}, JWT_SECRET, {
-      expiresIn: "10m",
-    });
-    return token;
+/** Minimal claims used by auth middleware / protected APIs. */
+export const buildTokenClaims = ({ id, sessionId }) => ({
+  id: String(id),
+  sessionId: String(sessionId),
+});
+
+export const generateToken = (userData, sessionId) => {
+  const claims = buildTokenClaims({
+    id: userData.id,
+    sessionId,
+  });
+  const encryptedPayload = encrypt(JSON.stringify(claims));
+  return jwt.sign({ data: encryptedPayload }, JWT_SECRET, {
+    expiresIn: "10m",
+  });
 };
 
 export const verifyToken = (token) => {
@@ -135,13 +142,11 @@ export const verifyToken = (token) => {
 };
 
 export const generateRefreshToken = (userData, sessionId) => {
-    const payload = {
-      ...userData,
-      sessionId,
-      iat: Math.floor(Date.now() / 1000),
-    };
-    const token = jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: "7d" });
-    return token;
+  const claims = buildTokenClaims({
+    id: userData.id,
+    sessionId,
+  });
+  return jwt.sign(claims, JWT_REFRESH_SECRET, { expiresIn: "7d" });
 };
 
 export const verifyRefreshToken = (token) => {
