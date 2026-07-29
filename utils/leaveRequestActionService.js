@@ -97,11 +97,17 @@ export const processLeaveRequestAction = async ({
   const resolvedLeaveTypeId = leaveTypeId || requestLeaveTypeId;
   const resolvedEmployeeId = employeeId || leaveRequest.employeeId;
 
+  const resolvedApprovedBy = Object.values(LEAVE_APPROVED_BY).includes(
+    approvedBy,
+  )
+    ? approvedBy
+    : null;
+
   if (action === LEAVE_REQUEST_ACTION.REJECT) {
     const updatedLeaveRequest = await leaveRequestRepository.updateStatusById(
       leaveRequestId,
       LEAVE_REQUEST_STATUS.REJECTED,
-      { approvedBy: null },
+      { approvedBy: resolvedApprovedBy },
     );
     await emailActionTokenRepository.markTokensUsedForLeaveRequest(leaveRequestId);
 
@@ -183,12 +189,6 @@ export const processLeaveRequestAction = async ({
       },
     };
   }
-
-  const resolvedApprovedBy = Object.values(LEAVE_APPROVED_BY).includes(
-    approvedBy,
-  )
-    ? approvedBy
-    : null;
 
   const updatedLeaveRequest = await leaveRequestRepository.updateStatusById(
     leaveRequestId,
