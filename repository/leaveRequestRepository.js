@@ -52,13 +52,7 @@ class LeaveRequestRepository {
       .sort({ startDate: -1 });
   }
 
-  async findByEmployeeId(employeeId, { status, startDate, endDate } = {}) {
-    const filter = { employeeId };
-
-    if (status) {
-      filter.status = status;
-    }
-
+  applyDateRangeContainmentFilter(filter, startDate, endDate) {
     if (startDate) {
       const start = new Date(startDate);
       start.setUTCHours(0, 0, 0, 0);
@@ -70,6 +64,18 @@ class LeaveRequestRepository {
       end.setUTCHours(23, 59, 59, 999);
       filter.endDate = { $lte: end };
     }
+
+    return filter;
+  }
+
+  async findByEmployeeId(employeeId, { status, startDate, endDate } = {}) {
+    const filter = { employeeId };
+
+    if (status) {
+      filter.status = status;
+    }
+
+    this.applyDateRangeContainmentFilter(filter, startDate, endDate);
 
     return LeaveRequest.find(filter)
       .populate("leaveType")
@@ -94,23 +100,38 @@ class LeaveRequestRepository {
         employeeIds.length === 1 ? employeeIds[0] : { $in: employeeIds };
     }
 
-    if (startDate) {
-      const start = new Date(startDate);
-      start.setUTCHours(0, 0, 0, 0);
-      filter.startDate = { $gte: start };
-    }
-
-    if (endDate) {
-      const end = new Date(endDate);
-      end.setUTCHours(23, 59, 59, 999);
-      filter.endDate = { $lte: end };
-    }
+    this.applyDateRangeContainmentFilter(filter, startDate, endDate);
 
     const sortDirection = sortOrder === "asc" ? 1 : -1;
 
     return LeaveRequest.find(filter)
       .populate("leaveType")
       .sort({ createdAt: sortDirection });
+  }
+
+  async rejectPendingByEmployeeId(employeeId) {
+    const pendingRequests = await LeaveRequest.find({
+      employeeId,
+      status: LEAVE_REQUEST_STATUS.PENDING,
+    }).select("_id");
+
+    if (!pendingRequests.length) {
+      return [];
+    }
+
+    const ids = pendingRequests.map((request) => request._id);
+
+    await LeaveRequest.updateMany(
+      { _id: { $in: ids } },
+      {
+        $set: {
+          status: LEAVE_REQUEST_STATUS.REJECTED,
+          approvedBy: null,
+        },
+      },
+    );
+
+    return ids;
   }
 
   buildEmployeeIdFilter(employeeIds) {

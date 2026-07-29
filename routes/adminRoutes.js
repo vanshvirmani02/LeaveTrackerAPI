@@ -41,6 +41,7 @@ import {
   employeeIdParamValidation,
   getEmployeesQueryValidation,
   setEmployeeManagerValidation,
+  getManagersQueryValidation,
   addLeaveTypeValidation,
   updateLeaveTypeValidation,
   leaveTypeIdParamValidation,
@@ -92,7 +93,12 @@ router.get(
   getAllEmployees,
 );
 router.get("/managers/list", getManagersList);
-router.get("/managers", getAllManagers);
+router.get(
+  "/managers",
+  getManagersQueryValidation,
+  validateReq,
+  getAllManagers,
+);
 router.put(
   "/employees/:id",
   updateEmployeeValidation,

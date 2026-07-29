@@ -1,6 +1,6 @@
 import asyncHandler from "../middleware/asyncHandler.js";
 import userRepository from "../repository/userRepository.js";
-import { ROLES } from "../config/constants.js";
+import { ROLES, USER_STATUS } from "../config/constants.js";
 
 const formatTeamMember = (member) => ({
   id: member._id?.toString(),
@@ -58,7 +58,25 @@ export const getAllManagers = asyncHandler(async (req, res) => {
     });
   }
 
-  const managers = await userRepository.findAllManagersWithTeamCount();
+  const { status } = req.query;
+
+  let normalizedStatus;
+  if (status !== undefined) {
+    normalizedStatus = String(status).toUpperCase();
+    if (
+      normalizedStatus !== USER_STATUS.ACTIVE &&
+      normalizedStatus !== USER_STATUS.INACTIVE
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Status must be active or inactive.",
+      });
+    }
+  }
+
+  const managers = await userRepository.findAllManagersWithTeamCount({
+    status: normalizedStatus,
+  });
 
   if (managers.length === 0) {
     return res.status(200).json({

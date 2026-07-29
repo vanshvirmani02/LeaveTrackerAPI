@@ -9,6 +9,14 @@ class SkillsRepository {
     return Skills.findOne({ employeeId });
   }
 
+  async findByEmployeeIds(employeeIds) {
+    if (!employeeIds?.length) {
+      return [];
+    }
+
+    return Skills.find({ employeeId: { $in: employeeIds } });
+  }
+
   async updateByEmployeeId(employeeId, updateData) {
     return Skills.findOneAndUpdate({ employeeId }, updateData, {
       returnDocument: "after",

@@ -250,6 +250,7 @@ export const getAdminDashboard = asyncHandler(async (req, res) => {
   const [
     totalEmployees,
     activeEmployees,
+    inactiveEmployees,
     employeesOnLeaveToday,
     pendingRequestCount,
     employeeConsumedLeaves,
@@ -257,6 +258,7 @@ export const getAdminDashboard = asyncHandler(async (req, res) => {
   ] = await Promise.all([
     userRepository.countEmployees(),
     userRepository.countEmployees({ status: USER_STATUS.ACTIVE }),
+    userRepository.countEmployees({ status: USER_STATUS.INACTIVE }),
     leaveRequestRepository.countDistinctEmployeesOnLeave(
       null,
       todayStart,
@@ -274,6 +276,7 @@ export const getAdminDashboard = asyncHandler(async (req, res) => {
     message: "Admin dashboard retrieved successfully.",
     totalEmployees,
     activeEmployees,
+    inactiveEmployees,
     employeesOnLeaveToday,
     pendingRequestCount,
     employeeConsumedLeaves,

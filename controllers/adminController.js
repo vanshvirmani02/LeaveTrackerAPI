@@ -4,6 +4,7 @@ import leaveRequestRepository from "../repository/leaveRequestRepository.js";
 import salaryRepository from "../repository/salaryRepository.js";
 import bankDetailsRepository from "../repository/bankDetailsRepository.js";
 import skillsRepository from "../repository/skillsRepository.js";
+import emailActionTokenRepository from "../repository/emailActionTokenRepository.js";
 import { formatLeaveRequest } from "./leaveRequestController.js";
 import { processLeaveRequestAction } from "../utils/leaveRequestActionService.js";
 import {
@@ -47,6 +48,32 @@ const formatSalary = (salary) => {
   }
 
   const doc = salary.toObject ? salary.toObject() : { ...salary };
+  const { _id, ...rest } = doc;
+  return {
+    ...rest,
+    id: _id?.toString(),
+  };
+};
+
+const formatBankDetails = (bankDetails) => {
+  if (!bankDetails) {
+    return null;
+  }
+
+  const doc = bankDetails.toObject ? bankDetails.toObject() : { ...bankDetails };
+  const { _id, ...rest } = doc;
+  return {
+    ...rest,
+    id: _id?.toString(),
+  };
+};
+
+const formatSkills = (skillsDoc) => {
+  if (!skillsDoc) {
+    return null;
+  }
+
+  const doc = skillsDoc.toObject ? skillsDoc.toObject() : { ...skillsDoc };
   const { _id, ...rest } = doc;
   return {
     ...rest,
@@ -174,11 +201,26 @@ export const getAllEmployees = asyncHandler(async (req, res) => {
     });
   }
 
-  const { managerId, managerName } = req.query;
+  const { managerId, managerName, status } = req.query;
+
+  let normalizedStatus;
+  if (status !== undefined) {
+    normalizedStatus = String(status).toUpperCase();
+    if (
+      normalizedStatus !== USER_STATUS.ACTIVE &&
+      normalizedStatus !== USER_STATUS.INACTIVE
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Status must be active or inactive.",
+      });
+    }
+  }
 
   const employees = await userRepository.findAllByRole(ROLES.EMPLOYEE, {
     managerId,
     managerName,
+    status: normalizedStatus,
   });
 
   if (employees.length === 0) {
@@ -193,10 +235,22 @@ export const getAllEmployees = asyncHandler(async (req, res) => {
   const employeeIds = employees
     .map((employee) => employee.employeeId)
     .filter(Boolean);
-  const salaries =
-    await salaryRepository.findLatestByEmployeeIds(employeeIds);
+  const [salaries, bankDetailsList, skillsList] = await Promise.all([
+    salaryRepository.findLatestByEmployeeIds(employeeIds),
+    bankDetailsRepository.findByEmployeeIds(employeeIds),
+    skillsRepository.findByEmployeeIds(employeeIds),
+  ]);
+
   const salaryMap = salaries.reduce((map, salary) => {
     map.set(salary.employeeId, formatSalary(salary));
+    return map;
+  }, new Map());
+  const bankDetailsMap = bankDetailsList.reduce((map, bankDetails) => {
+    map.set(bankDetails.employeeId, formatBankDetails(bankDetails));
+    return map;
+  }, new Map());
+  const skillsMap = skillsList.reduce((map, skills) => {
+    map.set(skills.employeeId, formatSkills(skills));
     return map;
   }, new Map());
 
@@ -206,6 +260,8 @@ export const getAllEmployees = asyncHandler(async (req, res) => {
     employees: employees.map((employee) => ({
       ...formatEmployee(employee),
       salary: salaryMap.get(employee.employeeId) ?? null,
+      bankDetails: bankDetailsMap.get(employee.employeeId) ?? null,
+      skills: skillsMap.get(employee.employeeId) ?? null,
     })),
   });
 });
@@ -225,6 +281,7 @@ export const updateEmployeeById = asyncHandler(async (req, res) => {
     workLocation,
     managerId,
     salary,
+    status,
   } = req.body;
 
   const isAdmin = req.user.role === ROLES.ADMIN;
@@ -263,6 +320,20 @@ export const updateEmployeeById = asyncHandler(async (req, res) => {
     }
   }
 
+  let normalizedStatus;
+  if (status !== undefined) {
+    normalizedStatus = String(status).toUpperCase();
+    if (
+      normalizedStatus !== USER_STATUS.ACTIVE &&
+      normalizedStatus !== USER_STATUS.INACTIVE
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Status must be active or inactive.",
+      });
+    }
+  }
+
   const updateData = {};
   if (name !== undefined) updateData.name = name;
   if (email !== undefined) updateData.email = email;
@@ -276,6 +347,7 @@ export const updateEmployeeById = asyncHandler(async (req, res) => {
   if (employmentType !== undefined) updateData.employmentType = employmentType;
   if (workLocation !== undefined) updateData.workLocation = workLocation;
   if (managerId !== undefined) updateData.managerId = managerId || null;
+  if (normalizedStatus !== undefined) updateData.status = normalizedStatus;
   if (password) {
     updateData.password = await encryptPasswordForStorage(decrypt(password));
   }
@@ -322,6 +394,14 @@ export const deleteEmployeeById = asyncHandler(async (req, res) => {
   }
 
   const employeeId = existingEmployee.employeeId;
+
+  if (employeeId) {
+    const rejectedLeaveRequestIds =
+      await leaveRequestRepository.rejectPendingByEmployeeId(employeeId);
+    await emailActionTokenRepository.markTokensUsedForLeaveRequests(
+      rejectedLeaveRequestIds,
+    );
+  }
 
   await Promise.all([
     userRepository.deleteById(id),

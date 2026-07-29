@@ -1,6 +1,10 @@
 import { body, param, query } from "express-validator";
 import mongoose from "mongoose";
-import { EMPLOYMENT_TYPES, PAYROLL_TYPES } from "../config/constants.js";
+import {
+  EMPLOYMENT_TYPES,
+  PAYROLL_TYPES,
+  USER_STATUS,
+} from "../config/constants.js";
 
 const mongoIdValidator = (value) => {
   if (!mongoose.Types.ObjectId.isValid(value)) {
@@ -206,6 +210,17 @@ export const updateEmployeeValidation = [
     .optional({ values: "null" })
     .custom(mongoIdValidator),
 
+  body("status")
+    .optional()
+    .trim()
+    .custom((value) => {
+      const normalized = String(value).toUpperCase();
+      if (!Object.values(USER_STATUS).includes(normalized)) {
+        throw new Error("Status must be active or inactive.");
+      }
+      return true;
+    }),
+
   ...salaryFieldValidations("salary", { required: false }),
 ];
 
@@ -225,10 +240,34 @@ export const getEmployeesQueryValidation = [
     .withMessage("Manager name cannot be empty.")
     .isLength({ max: 100 })
     .withMessage("Manager name must not exceed 100 characters."),
+
+  query("status")
+    .optional()
+    .trim()
+    .custom((value) => {
+      const normalized = String(value).toUpperCase();
+      if (!Object.values(USER_STATUS).includes(normalized)) {
+        throw new Error("Status must be active or inactive.");
+      }
+      return true;
+    }),
 ];
 
 export const setEmployeeManagerValidation = [
   body("id").optional().custom(mongoIdValidator),
 
   query("id").optional().custom(mongoIdValidator),
+];
+
+export const getManagersQueryValidation = [
+  query("status")
+    .optional()
+    .trim()
+    .custom((value) => {
+      const normalized = String(value).toUpperCase();
+      if (!Object.values(USER_STATUS).includes(normalized)) {
+        throw new Error("Status must be active or inactive.");
+      }
+      return true;
+    }),
 ];

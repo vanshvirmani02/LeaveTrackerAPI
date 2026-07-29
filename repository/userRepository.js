@@ -103,7 +103,7 @@ class UserRepository {
     return User.create(userData);
   }
 
-  async findAllByRole(role, { managerId, managerName } = {}) {
+  async findAllByRole(role, { managerId, managerName, status } = {}) {
     const filter = { role };
     let managerIdsFilter = null;
 
@@ -135,6 +135,10 @@ class UserRepository {
         managerIdsFilter.length === 1
           ? managerIdsFilter[0]
           : { $in: managerIdsFilter };
+    }
+
+    if (status) {
+      filter.status = String(status).toUpperCase();
     }
 
     return User.find(filter)
@@ -178,7 +182,17 @@ class UserRepository {
       .lean();
   }
 
-  async findAllManagersWithTeamCount() {
+  async findAllManagersWithTeamCount({ status } = {}) {
+    const managerLookupPipeline = [];
+
+    if (status) {
+      managerLookupPipeline.push({
+        $match: { status: String(status).toUpperCase() },
+      });
+    }
+
+    managerLookupPipeline.push({ $project: { password: 0 } });
+
     return User.aggregate([
       { $match: { managerId: { $ne: null } } },
       {
@@ -201,7 +215,7 @@ class UserRepository {
           localField: "_id",
           foreignField: "_id",
           as: "manager",
-          pipeline: [{ $project: { password: 0 } }],
+          pipeline: managerLookupPipeline,
         },
       },
       { $unwind: "$manager" },

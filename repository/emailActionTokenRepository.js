@@ -51,6 +51,17 @@ class EmailActionTokenRepository {
       { usedAt: new Date() },
     );
   }
+
+  async markTokensUsedForLeaveRequests(leaveRequestIds) {
+    if (!leaveRequestIds?.length) {
+      return;
+    }
+
+    return EmailActionToken.updateMany(
+      { leaveRequestId: { $in: leaveRequestIds }, usedAt: null },
+      { usedAt: new Date() },
+    );
+  }
 }
 
 export default new EmailActionTokenRepository();

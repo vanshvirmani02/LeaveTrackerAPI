@@ -9,6 +9,14 @@ class BankDetailsRepository {
     return BankDetails.findOne({ employeeId });
   }
 
+  async findByEmployeeIds(employeeIds) {
+    if (!employeeIds?.length) {
+      return [];
+    }
+
+    return BankDetails.find({ employeeId: { $in: employeeIds } });
+  }
+
   async updateByEmployeeId(employeeId, updateData) {
     return BankDetails.findOneAndUpdate({ employeeId }, updateData, {
       returnDocument: "after",
