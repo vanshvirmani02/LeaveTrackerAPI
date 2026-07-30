@@ -192,6 +192,19 @@ export const addEmployee = asyncHandler(async (req, res) => {
   });
 });
 
+export const checkEmailAvailability = asyncHandler(async (req, res) => {
+  const email = String(req.query.email || "")
+    .toLowerCase()
+    .trim();
+
+  const emailTaken = await userRepository.existsByEmail(email);
+
+  return res.status(200).json({
+    success: true,
+    emailAvailable: !emailTaken,
+  });
+});
+
 export const getAllEmployees = asyncHandler(async (req, res) => {
   const isAdmin = req.user.role === ROLES.ADMIN;
   if (!isAdmin) {
@@ -201,7 +214,16 @@ export const getAllEmployees = asyncHandler(async (req, res) => {
     });
   }
 
-  const { managerId, managerName, status } = req.query;
+  const {
+    managerId,
+    managerName,
+    status,
+    name,
+    sort_type,
+    sort_order,
+    startDate,
+    endDate,
+  } = req.query;
 
   let normalizedStatus;
   if (status !== undefined) {
@@ -221,6 +243,11 @@ export const getAllEmployees = asyncHandler(async (req, res) => {
     managerId,
     managerName,
     status: normalizedStatus,
+    name,
+    startDate,
+    endDate,
+    sortType: sort_type,
+    sortOrder: sort_order,
   });
 
   if (employees.length === 0) {

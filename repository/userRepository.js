@@ -6,6 +6,12 @@ class UserRepository {
     return User.findOne({ email: email.toLowerCase().trim() });
   }
 
+  async existsByEmail(email) {
+    return Boolean(
+      await User.exists({ email: email.toLowerCase().trim() }),
+    );
+  }
+
   async findByEmailAndRole(email, role) {
     return User.findOne({ email: email.toLowerCase().trim(), role });
   }
@@ -103,7 +109,19 @@ class UserRepository {
     return User.create(userData);
   }
 
-  async findAllByRole(role, { managerId, managerName, status } = {}) {
+  async findAllByRole(
+    role,
+    {
+      managerId,
+      managerName,
+      status,
+      name,
+      startDate,
+      endDate,
+      sortType = "name",
+      sortOrder = "asc",
+    } = {},
+  ) {
     const filter = { role };
     let managerIdsFilter = null;
 
@@ -141,10 +159,39 @@ class UserRepository {
       filter.status = String(status).toUpperCase();
     }
 
+    if (name?.trim()) {
+      filter.name = { $regex: name.trim(), $options: "i" };
+    }
+
+    if (startDate || endDate) {
+      filter.joiningDate = {};
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setUTCHours(0, 0, 0, 0);
+        filter.joiningDate.$gte = start;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setUTCHours(23, 59, 59, 999);
+        filter.joiningDate.$lte = end;
+      }
+    }
+
+    const normalizedSortType = ["joiningdate", "joining_date"].includes(
+      String(sortType || "name").toLowerCase(),
+    )
+      ? "joiningDate"
+      : "name";
+    const normalizedSortOrder = ["desc", "descending"].includes(
+      String(sortOrder || "asc").toLowerCase(),
+    )
+      ? -1
+      : 1;
+
     return User.find(filter)
       .select("-password")
       .populate("managerId", "name")
-      .sort({ createdAt: -1 });
+      .sort({ [normalizedSortType]: normalizedSortOrder });
   }
 
   async findByIdAndRole(id, role) {

@@ -228,6 +228,16 @@ export const employeeIdParamValidation = [
   param("id").custom(mongoIdValidator),
 ];
 
+export const checkEmailAvailabilityValidation = [
+  query("email")
+    .trim()
+    .notEmpty()
+    .withMessage("Email is required.")
+    .isEmail()
+    .withMessage("A valid email is required.")
+    .normalizeEmail(),
+];
+
 export const getEmployeesQueryValidation = [
   query("managerId")
     .optional()
@@ -248,6 +258,57 @@ export const getEmployeesQueryValidation = [
       const normalized = String(value).toUpperCase();
       if (!Object.values(USER_STATUS).includes(normalized)) {
         throw new Error("Status must be active or inactive.");
+      }
+      return true;
+    }),
+
+  query("name")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage("Employee name cannot be empty.")
+    .isLength({ max: 100 })
+    .withMessage("Employee name must not exceed 100 characters."),
+
+  query("sort_type")
+    .optional()
+    .trim()
+    .custom((value) => {
+      const normalized = String(value).toLowerCase().replace(/_/g, "");
+      if (!["name", "joiningdate"].includes(normalized)) {
+        throw new Error("sort_type must be name or joiningDate.");
+      }
+      return true;
+    }),
+
+  query("sort_order")
+    .optional()
+    .trim()
+    .custom((value) => {
+      const normalized = String(value).toLowerCase();
+      if (!["asc", "desc", "ascending", "descending"].includes(normalized)) {
+        throw new Error(
+          "sort_order must be ascending, descending, asc, or desc.",
+        );
+      }
+      return true;
+    }),
+
+  query("startDate")
+    .optional()
+    .isISO8601({ strict: true })
+    .withMessage("Start date must be a valid date."),
+
+  query("endDate")
+    .optional()
+    .isISO8601({ strict: true })
+    .withMessage("End date must be a valid date.")
+    .custom((endDate, { req }) => {
+      if (!req.query?.startDate) {
+        return true;
+      }
+      if (new Date(endDate) < new Date(req.query.startDate)) {
+        throw new Error("End date must be on or after start date.");
       }
       return true;
     }),

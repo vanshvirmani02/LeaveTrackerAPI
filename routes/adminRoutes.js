@@ -2,6 +2,7 @@ import express from "express";
 import {
   addEmployee,
   getAllEmployees,
+  checkEmailAvailability,
   updateEmployeeById,
   deleteEmployeeById,
   setEmployeeManager,
@@ -39,6 +40,7 @@ import {
   addEmployeeValidation,
   updateEmployeeValidation,
   employeeIdParamValidation,
+  checkEmailAvailabilityValidation,
   getEmployeesQueryValidation,
   setEmployeeManagerValidation,
   getManagersQueryValidation,
@@ -86,6 +88,12 @@ const router = express.Router();
 router.use(authHandler, adminHandler);
 
 router.post("/employees", addEmployeeValidation, validateReq, addEmployee);
+router.get(
+  "/employees/email-availability",
+  checkEmailAvailabilityValidation,
+  validateReq,
+  checkEmailAvailability,
+);
 router.get(
   "/employees",
   getEmployeesQueryValidation,
